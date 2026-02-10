@@ -2,6 +2,7 @@
   "name": "pickleball-reservation",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "packageManager": "pnpm@10.28.2",
   "scripts": {
     "dev": "vite dev",
@@ -10,9 +11,9 @@
   },
   "devDependencies": {
     "@sveltejs/adapter-auto": "^4.0.0",
-    "@sveltejs/kit": "^2.15.0",
+    "@sveltejs/kit": "^2.50.2",
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
-    "svelte": "^5.0.0",
+    "svelte": "^5.50.1",
     "vite": "^6.0.0"
   }
 }
