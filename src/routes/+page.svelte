@@ -42,6 +42,7 @@
             <span class="user-icon">👤</span>
             <span class="user-name">{$auth.name || $auth.username}</span>님
           </span>
+          <a href="/profile" class="nav-link profile-link">회원정보</a>
           <button class="nav-link logout-btn" on:click={handleLogout}>
             로그아웃
           </button>
@@ -168,6 +169,15 @@
   .signup-link:hover {
     background: rgba(255, 255, 255, 0.3);
     border-color: rgba(255, 255, 255, 0.6);
+    transform: translateY(-1px);
+  }
+  .profile-link {
+    background: rgba(66, 153, 225, 0.2);
+    border: 1.5px solid rgba(66, 153, 225, 0.4);
+  }
+  .profile-link:hover {
+    background: rgba(66, 153, 225, 0.35);
+    border-color: rgba(66, 153, 225, 0.6);
     transform: translateY(-1px);
   }
   .logout-btn {
