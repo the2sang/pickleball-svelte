@@ -2,13 +2,14 @@
   /** @type {{ player: { name: string, level: string, dupr?: string, sex: string } }} */
   let { player } = $props();
 
-  const sexIcon = $derived(player.sex === "남" ? "♂" : "♀");
-  const sexColor = $derived(player.sex === "남" ? "#1976D2" : "#C2185B");
+  const sexIcon = $derived(player.sex === "남성" || player.sex === "남" ? "♂" : "♀");
+  const sexColor = $derived(player.sex === "남성" || player.sex === "남" ? "#1976D2" : "#C2185B");
+  const displayName = $derived(player.nicName || player.name);
 </script>
 
 <div class="player-chip">
   <span class="sex-icon" style="color:{sexColor}">{sexIcon}</span>
-  <span class="name">{player.name}</span>
+  <span class="name">{displayName}</span>
   <span class="level">{player.gameLevel || player.level}</span>
   {#if player.duprPoint || player.dupr}
     <span class="dupr">DUPR {player.duprPoint || player.dupr}</span>

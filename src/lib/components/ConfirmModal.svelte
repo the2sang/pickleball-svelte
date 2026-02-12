@@ -53,7 +53,7 @@
     }
   }
 
-  const partnerName = $derived($partnerInfo?.name ?? "");
+  const partnerName = $derived($partnerInfo?.businessPartner ?? $partnerInfo?.name ?? "");
 </script>
 
 <Modal open={$confirmOpen} onclose={() => confirmOpen.set(false)}>
@@ -67,7 +67,7 @@
           <div><strong>사업장:</strong> {partnerName}</div>
           <div>
             <strong>코트:</strong>
-            {$modalData.court.name} ({$modalData.court.level})
+            {$modalData.court.courtName || $modalData.court.name || '코트'} ({$modalData.court.courtLevel || $modalData.court.level || ''})
           </div>
           <div><strong>날짜:</strong> {$selectedDate}</div>
           <div><strong>시간:</strong> {$modalData.timeSlot}</div>

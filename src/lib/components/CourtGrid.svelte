@@ -4,6 +4,7 @@
     filteredCourts,
     modalOpen,
     modalData,
+    refreshTrigger,
   } from "$lib/stores/reservation.js";
   import { auth } from "$lib/stores/auth.js";
   import LevelBadge from "./LevelBadge.svelte";
@@ -12,8 +13,9 @@
   let timeRows = [];
   let loading = false;
   let selectedCourtId = null;
+  let showLoginPrompt = false;
 
-  $: if ($selectedDate && $filteredCourts && $filteredCourts.length > 0) {
+  $: if ($selectedDate && $filteredCourts && $filteredCourts.length > 0 && $refreshTrigger >= 0) {
     loadSlots();
   }
 
@@ -30,20 +32,15 @@
     const allSlots = new Set();
 
     const token = $auth?.accessToken;
-    if (!token) {
-      console.log("No auth token available");
-      loading = false;
-      return;
-    }
 
     try {
       const promises = $filteredCourts.map(async (court) => {
         const url = `/api/v1/courts/${court.id}/slots?date=${$selectedDate}`;
-        console.log("Fetching slots:", url);
-        const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        console.log("Response status:", res.status, "for court:", court.id);
+        const headers = {};
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+        const res = await fetch(url, { headers });
         if (res.ok) {
           const data = await res.json();
           console.log("Court slots data:", court.id, data);
@@ -74,7 +71,12 @@
 
   function openDetail(timeSlot, info) {
     if (!info || !selectedCourt) return;
-    // Pass info directly to modal
+
+    if (!$auth) {
+      showLoginPrompt = true;
+      return;
+    }
+
     modalData.set({
       court: selectedCourt,
       timeSlot,
@@ -165,35 +167,87 @@
         {#each selectedCourtSlots.slots as slotInfo (slotInfo.timeSlot)}
           {@const style = getStatusStyle(slotInfo)}
           {@const isRental = slotInfo.scheduleType === 'RENTAL'}
-          <button
-            class="slot-item"
-            disabled={slotInfo.status === "FULL" || slotInfo.status === "CLOSED" || isRental}
-            style="background:{style.bg}; border-color:{style.color}"
-            on:click={() => openDetail(slotInfo.timeSlot, slotInfo)}
-          >
-            <div class="slot-left">
-              <div class="slot-time">⏰ {slotInfo.timeSlot}</div>
-              {#if slotInfo.scheduleType}
-                <span class="slot-type" class:rental={isRental}>
-                  {getScheduleTypeLabel(slotInfo.scheduleType)}
-                </span>
-              {/if}
-            </div>
-            {#if isRental}
-              <div class="slot-info">
-                <div class="rental-notice">일반 예약 불가</div>
+          {@const confirmedPlayers = (slotInfo.players || []).filter(p => !p.isWaiting)}
+          {@const waitingPlayers = (slotInfo.players || []).filter(p => p.isWaiting)}
+          <div class="slot-wrapper">
+            <button
+              class="slot-item"
+              disabled={$auth && (slotInfo.status === "FULL" || slotInfo.status === "CLOSED" || isRental)}
+              style="background:{style.bg}; border-color:{style.color}"
+              on:click={() => openDetail(slotInfo.timeSlot, slotInfo)}
+            >
+              <div class="slot-left">
+                <div class="slot-time">⏰ {slotInfo.timeSlot}</div>
+                {#if slotInfo.scheduleType}
+                  <span class="slot-type" class:rental={isRental}>
+                    {getScheduleTypeLabel(slotInfo.scheduleType)}
+                  </span>
+                {/if}
               </div>
-            {:else}
-              <div class="slot-info">
-                <div class="slot-count" style="color:{style.color}">
-                  {slotInfo.reservedCount}/{slotInfo.capacity}명
+              {#if isRental}
+                <div class="slot-info">
+                  <div class="rental-notice">일반 예약 불가</div>
                 </div>
-                <div class="slot-status" style="color:{style.color}">
-                  {getStatusLabel(slotInfo)}
+              {:else}
+                <div class="slot-info">
+                  <div class="slot-count" style="color:{style.color}">
+                    {slotInfo.reservedCount}/{slotInfo.capacity}명
+                  </div>
+                  <div class="slot-status" style="color:{style.color}">
+                    {getStatusLabel(slotInfo)}
+                  </div>
                 </div>
+              {/if}
+            </button>
+
+            <!-- Hover Popup -->
+            {#if slotInfo.players && slotInfo.players.length > 0}
+              <div class="hover-popup">
+                <div class="popup-header">
+                  <span class="popup-time">⏰ {slotInfo.timeSlot}</span>
+                  <span class="popup-count">{slotInfo.reservedCount}/{slotInfo.capacity}명</span>
+                </div>
+                {#if confirmedPlayers.length > 0}
+                  <div class="popup-section confirmed">
+                    <div class="popup-section-title">확정 ({confirmedPlayers.length}명)</div>
+                    {#each confirmedPlayers as p (p.orderNumber)}
+                      <div class="popup-player">
+                        <span class="popup-order confirmed">{p.orderNumber}</span>
+                        <span class="popup-name">{p.nicName || p.name}</span>
+                        {#if p.gameLevel}
+                          <span class="popup-level">{p.gameLevel}</span>
+                        {/if}
+                        {#if p.sex}
+                          <span class="popup-sex">{p.sex === '남성' ? '♂' : '♀'}</span>
+                        {/if}
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+                {#if waitingPlayers.length > 0}
+                  <div class="popup-section waiting">
+                    <div class="popup-section-title waiting">대기 ({waitingPlayers.length}명)</div>
+                    {#each waitingPlayers as p (p.orderNumber)}
+                      <div class="popup-player">
+                        <span class="popup-order waiting">{p.orderNumber}</span>
+                        <span class="popup-name">{p.nicName || p.name}</span>
+                        {#if p.gameLevel}
+                          <span class="popup-level">{p.gameLevel}</span>
+                        {/if}
+                        {#if p.sex}
+                          <span class="popup-sex">{p.sex === '남성' ? '♂' : '♀'}</span>
+                        {/if}
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
+            {:else if !isRental}
+              <div class="hover-popup">
+                <div class="popup-empty">아직 예약자가 없습니다</div>
               </div>
             {/if}
-          </button>
+          </div>
         {/each}
       </div>
 
@@ -205,6 +259,37 @@
     <div class="empty-msg">코트 정보를 불러올 수 없습니다.</div>
   {/if}
 </div>
+
+<!-- Login Prompt Modal -->
+{#if showLoginPrompt}
+  <div
+    class="login-overlay"
+    role="button"
+    tabindex="0"
+    on:click={() => (showLoginPrompt = false)}
+    on:keydown={(e) => e.key === "Escape" && (showLoginPrompt = false)}
+  >
+    <div
+      class="login-modal"
+      role="dialog"
+      aria-labelledby="login-prompt-title"
+      on:click|stopPropagation
+      on:keydown|stopPropagation
+    >
+      <div class="login-modal-icon">🔒</div>
+      <h3 id="login-prompt-title" class="login-modal-title">로그인이 필요합니다</h3>
+      <p class="login-modal-msg">
+        로그인 후 예약 진행이 가능합니다.<br />
+        계정이 없는 경우 회원가입 바랍니다.
+      </p>
+      <div class="login-modal-actions">
+        <a href="/login" class="login-modal-btn primary">로그인</a>
+        <a href="/signup" class="login-modal-btn secondary">회원가입</a>
+      </div>
+      <button class="login-modal-close" on:click={() => (showLoginPrompt = false)}>닫기</button>
+    </div>
+  </div>
+{/if}
 
 <style>
   .card {
@@ -333,6 +418,9 @@
     display: grid;
     gap: 10px;
   }
+  .slot-wrapper {
+    position: relative;
+  }
   .slot-item {
     display: flex;
     justify-content: space-between;
@@ -344,6 +432,7 @@
     transition: all 0.2s;
     font-family: inherit;
     background: #fff;
+    width: 100%;
   }
   .slot-item:not(:disabled):hover {
     transform: translateX(4px);
@@ -400,11 +489,216 @@
     background: rgba(255, 243, 224, 0.6);
   }
 
+  /* Hover Popup */
+  .hover-popup {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 6px;
+    width: 280px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+    border: 1.5px solid #e2e8f0;
+    z-index: 100;
+    padding: 14px;
+    animation: popupFadeIn 0.15s ease;
+  }
+  .slot-wrapper:hover .hover-popup {
+    display: block;
+  }
+  .popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #edf2f7;
+  }
+  .popup-time {
+    font-weight: 700;
+    font-size: 14px;
+    color: #1a365d;
+  }
+  .popup-count {
+    font-size: 13px;
+    font-weight: 700;
+    color: #4a5568;
+    background: #edf2f7;
+    padding: 2px 10px;
+    border-radius: 10px;
+  }
+  .popup-section {
+    margin-bottom: 8px;
+  }
+  .popup-section:last-child {
+    margin-bottom: 0;
+  }
+  .popup-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #2e7d32;
+    margin-bottom: 6px;
+    padding: 2px 8px;
+    background: #e8f5e9;
+    border-radius: 6px;
+    display: inline-block;
+  }
+  .popup-section-title.waiting {
+    color: #e65100;
+    background: #fff3e0;
+  }
+  .popup-player {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 6px;
+    border-radius: 6px;
+    transition: background 0.1s;
+  }
+  .popup-player:hover {
+    background: #f7fafc;
+  }
+  .popup-order {
+    min-width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .popup-order.confirmed {
+    background: #2e7d32;
+  }
+  .popup-order.waiting {
+    background: #e65100;
+  }
+  .popup-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #2d3748;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .popup-level {
+    font-size: 10px;
+    font-weight: 600;
+    color: #4299e1;
+    background: #ebf8ff;
+    padding: 1px 7px;
+    border-radius: 8px;
+    white-space: nowrap;
+  }
+  .popup-sex {
+    font-size: 13px;
+    color: #718096;
+  }
+  .popup-empty {
+    text-align: center;
+    padding: 12px 0;
+    color: #a0aec0;
+    font-size: 13px;
+  }
+  @keyframes popupFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
   .empty-msg {
     padding: 40px;
     text-align: center;
     color: #718096;
     font-size: 14px;
+  }
+
+  /* Login Prompt Modal */
+  .login-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+  }
+  .login-modal {
+    background: #fff;
+    border-radius: 16px;
+    padding: 32px 28px 24px;
+    max-width: 380px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    animation: slideUp 0.3s ease;
+  }
+  .login-modal-icon {
+    font-size: 44px;
+    margin-bottom: 12px;
+  }
+  .login-modal-title {
+    margin: 0 0 10px;
+    font-size: 18px;
+    font-weight: 800;
+    color: #1a365d;
+  }
+  .login-modal-msg {
+    margin: 0 0 22px;
+    font-size: 14px;
+    color: #4a5568;
+    line-height: 1.7;
+  }
+  .login-modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .login-modal-btn {
+    flex: 1;
+    padding: 12px 0;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.15s;
+  }
+  .login-modal-btn.primary {
+    background: linear-gradient(135deg, #1a365d, #2a4a7f);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(26, 54, 93, 0.3);
+  }
+  .login-modal-btn.primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(26, 54, 93, 0.4);
+  }
+  .login-modal-btn.secondary {
+    background: #fff;
+    color: #1a365d;
+    border: 1.5px solid #e2e8f0;
+  }
+  .login-modal-btn.secondary:hover {
+    background: #f7fafc;
+    border-color: #cbd5e0;
+  }
+  .login-modal-close {
+    background: none;
+    border: none;
+    color: #a0aec0;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 4px 12px;
+  }
+  .login-modal-close:hover {
+    color: #718096;
   }
 
   @keyframes slideUp {

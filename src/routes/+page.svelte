@@ -42,7 +42,11 @@
             <span class="user-icon">👤</span>
             <span class="user-name">{$auth.name || $auth.username}</span>님
           </span>
-          <a href="/profile" class="nav-link profile-link">회원정보</a>
+          {#if $auth.accountType === 'PARTNER'}
+            <a href="/partner/profile" class="nav-link profile-link">사업장정보</a>
+          {:else}
+            <a href="/profile" class="nav-link profile-link">회원정보</a>
+          {/if}
           <button class="nav-link logout-btn" on:click={handleLogout}>
             로그아웃
           </button>

@@ -206,7 +206,11 @@
             const data = await response.json();
             auth.login(data);
             alert("회원가입이 완료되었습니다! 자동 로그인되었습니다.");
-            goto("/");
+            if (accountType === "PARTNER") {
+                goto("/partner");
+            } else {
+                goto("/");
+            }
         } catch (err) {
             signupError = "서버에 연결할 수 없습니다. 네트워크를 확인해주세요.";
             submitted = false;
