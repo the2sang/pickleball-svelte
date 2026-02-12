@@ -47,6 +47,13 @@
                             >{$auth.name || $auth.username}</span
                         >님
                     </span>
+                    <a href="/partner/court" class="nav-link court-link"
+                        >코트관리</a
+                    >
+                    <a
+                        href="/partner/courtReservation"
+                        class="nav-link court-link">예약설정</a
+                    >
                     <a href="/partner/profile" class="nav-link profile-link"
                         >사업장정보</a
                     >
@@ -66,6 +73,14 @@
                 사업장 정보를 관리하고, 코트 및 예약 현황을 확인할 수 있습니다.
             </p>
             <div class="quick-links">
+                <a href="/partner/court" class="quick-link">
+                    <span class="quick-icon">🏸</span>
+                    <span class="quick-text">코트 관리</span>
+                </a>
+                <a href="/partner/courtReservation" class="quick-link">
+                    <span class="quick-icon">⚙️</span>
+                    <span class="quick-text">코트별 예약설정</span>
+                </a>
                 <a href="/partner/profile" class="quick-link">
                     <span class="quick-icon">📋</span>
                     <span class="quick-text">사업장정보 수정</span>

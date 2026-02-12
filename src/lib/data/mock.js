@@ -60,7 +60,7 @@ export const MOCK_RESERVATIONS = [
  */
 export function getNext7Days() {
   const days = [];
-  const base = new Date(2026, 1, 10);
+  const base = new Date(); // Use current date instead of hardcoded date
   const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
   for (let i = 0; i < 7; i++) {
     const d = new Date(base);

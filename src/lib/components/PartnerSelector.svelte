@@ -1,5 +1,9 @@
 <script>
-  import { selectedPartner } from "$lib/stores/reservation.js";
+  import {
+    selectedPartner,
+    partnerInfo,
+    courts,
+  } from "$lib/stores/reservation.js";
   import { onMount } from "svelte";
 
   let partners = [];
@@ -41,6 +45,26 @@
 
   function selectPartner(id) {
     selectedPartner.set(id);
+    const partner = partners.find((p) => p.id === id);
+    if (partner) {
+      partnerInfo.set(partner);
+      fetchCourts(id);
+    }
+  }
+
+  async function fetchCourts(partnerId) {
+    try {
+      const res = await fetch(`/api/v1/partners/${partnerId}/courts`);
+      if (res.ok) {
+        const data = await res.json();
+        courts.set(data);
+      } else {
+        courts.set([]);
+      }
+    } catch (e) {
+      console.error(e);
+      courts.set([]);
+    }
   }
 
   function clearSearch() {
