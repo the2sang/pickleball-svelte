@@ -7,17 +7,23 @@
 
   let cancelLoading = $state(false);
   let cancelError = $state('');
+  let cancelConfirmOpen = $state(false);
 
   function handleReserve() {
     modalOpen.set(false);
     confirmOpen.set(true);
   }
 
-  async function handleCancel() {
+  function showCancelConfirm() {
+    cancelConfirmOpen = true;
+  }
+
+  async function executeCancelReservation() {
     if (!myReservation || !$auth) return;
 
     cancelLoading = true;
     cancelError = '';
+    cancelConfirmOpen = false;
 
     try {
       const res = await fetch(`/api/v1/reservations/${myReservation.reservationId}`, {
@@ -112,7 +118,7 @@
       <div class="actions">
         <button class="btn-secondary" onclick={() => modalOpen.set(false)}>닫기</button>
         {#if isMyReserved}
-          <button class="btn-cancel-reservation" onclick={handleCancel} disabled={cancelLoading}>
+          <button class="btn-cancel-reservation" onclick={showCancelConfirm} disabled={cancelLoading}>
             {cancelLoading ? '처리중...' : '예약 취소하기'}
           </button>
         {:else if !canReserve}
@@ -128,6 +134,37 @@
         {/if}
       </div>
     {/if}
+  {/snippet}
+</Modal>
+
+<!-- 취소 확인 모달 -->
+<Modal open={cancelConfirmOpen} onclose={() => cancelConfirmOpen = false}>
+  {#snippet children()}
+    <div class="cancel-confirm-body">
+      <div class="warning-icon">⚠️</div>
+      <h3 class="cancel-title">예약 취소 확인</h3>
+      <p class="cancel-message">
+        지금 예약취소하고 다시 예약하실 경우<br />
+        순번이 뒤로 밀립니다.<br /><br />
+        진행하시겠습니까?
+      </p>
+      <div class="cancel-actions">
+        <button
+          class="btn-cancel-no"
+          onclick={() => cancelConfirmOpen = false}
+          disabled={cancelLoading}
+        >
+          아니오
+        </button>
+        <button
+          class="btn-cancel-yes"
+          onclick={executeCancelReservation}
+          disabled={cancelLoading}
+        >
+          {cancelLoading ? '처리중...' : '확인'}
+        </button>
+      </div>
+    </div>
   {/snippet}
 </Modal>
 
@@ -239,6 +276,71 @@
     flex: 2; padding: 12px 0; border-radius: 10px; border: none;
     background: #e2e8f0;
     color: #a0aec0; font-weight: 700; font-size: 14px; font-family: inherit;
+    cursor: not-allowed;
+  }
+
+  /* 취소 확인 모달 스타일 */
+  .cancel-confirm-body {
+    text-align: center;
+    padding: 8px;
+  }
+  .warning-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+  }
+  .cancel-title {
+    margin: 0 0 16px;
+    font-size: 18px;
+    font-weight: 800;
+    color: #c53030;
+  }
+  .cancel-message {
+    margin: 0 0 24px;
+    font-size: 14px;
+    line-height: 1.8;
+    color: #4a5568;
+  }
+  .cancel-actions {
+    display: flex;
+    gap: 10px;
+  }
+  .btn-cancel-no {
+    flex: 1;
+    padding: 12px 0;
+    border-radius: 10px;
+    border: 1.5px solid #e2e8f0;
+    background: #fff;
+    color: #718096;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .btn-cancel-no:hover:not(:disabled) {
+    background: #f7fafc;
+    border-color: #cbd5e0;
+  }
+  .btn-cancel-yes {
+    flex: 1;
+    padding: 12px 0;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(135deg, #c53030, #e53e3e);
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: inherit;
+    box-shadow: 0 4px 12px rgba(197, 48, 48, 0.3);
+    transition: all 0.15s;
+  }
+  .btn-cancel-yes:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+  .btn-cancel-no:disabled,
+  .btn-cancel-yes:disabled {
+    opacity: 0.7;
     cursor: not-allowed;
   }
 </style>

@@ -14,6 +14,7 @@
   let loading = false;
   let selectedCourtId = null;
   let showLoginPrompt = false;
+  let showClosedPrompt = false;
 
   $: if ($selectedDate && $filteredCourts && $filteredCourts.length > 0 && $refreshTrigger >= 0) {
     loadSlots();
@@ -69,11 +70,37 @@
     return selectedCourtSlots.slots.find((s) => s.timeSlot === timeSlot);
   }
 
+  // 현재 시간이 지난 시간대인지 확인
+  function isPastSlot(timeSlot, gameDate) {
+    try {
+      // timeSlot: "06:00~09:00" 형식
+      const startTime = timeSlot.split('~')[0].trim();
+      const [hours, minutes] = startTime.split(':').map(Number);
+
+      // 게임 날짜와 시작 시간으로 Date 객체 생성
+      const slotDateTime = new Date(gameDate);
+      slotDateTime.setHours(hours, minutes, 0, 0);
+
+      // 현재 시간과 비교
+      const now = new Date();
+      return now > slotDateTime;
+    } catch (e) {
+      console.error('시간 파싱 오류:', e);
+      return false;
+    }
+  }
+
   function openDetail(timeSlot, info) {
     if (!info || !selectedCourt) return;
 
     if (!$auth) {
       showLoginPrompt = true;
+      return;
+    }
+
+    // 현재 시간이 지난 시간대인지 확인
+    if (isPastSlot(timeSlot, $selectedDate)) {
+      showClosedPrompt = true;
       return;
     }
 
@@ -89,8 +116,14 @@
     selectedCourtId = courtId;
   }
 
-  function getStatusStyle(info) {
+  function getStatusStyle(info, timeSlot) {
     if (!info) return { bg: "#f7fafc", color: "#cbd5e0", opacity: 0.5 }; // No slot
+
+    // 현재 시간이 지난 시간대는 마감 처리
+    if (timeSlot && isPastSlot(timeSlot, $selectedDate)) {
+      return { bg: "#edf2f7", color: "#a0aec0" };
+    }
+
     if (info.status === "CLOSED") return { bg: "#edf2f7", color: "#a0aec0" };
     if (info.status === "FULL") return { bg: "#FFEBEE", color: "#C62828" };
 
@@ -99,18 +132,64 @@
     return { bg: "#E8F5E9", color: "#2E7D32" }; // Empty
   }
 
-  function getStatusLabel(info) {
+  function getStatusLabel(info, timeSlot) {
     if (!info) return "-";
-    if (info.status === "CLOSED") return "마감"; // Or '운영안함'
+
+    // 현재 시간이 지난 시간대는 마감
+    if (timeSlot && isPastSlot(timeSlot, $selectedDate)) {
+      return "마감";
+    }
+
+    if (info.status === "CLOSED") return "마감";
     if (info.status === "FULL") return "마감";
     if (info.reservedCount > 0) return "예약가능";
-    return "빈자리";
+    return "예약접수";
   }
 
   function getScheduleTypeLabel(scheduleType) {
     if (scheduleType === "RENTAL") return "대관";
     if (scheduleType === "OPEN_GAME") return "오픈게임";
     return "";
+  }
+
+  // 시간대 포맷팅: "06:00~09:00" → "오전6시~9시(3시간)"
+  function formatTimeSlot(timeSlot) {
+    try {
+      const [startStr, endStr] = timeSlot.split('~').map(s => s.trim());
+      const [startHour, startMin] = startStr.split(':').map(Number);
+      const [endHour, endMin] = endStr.split(':').map(Number);
+
+      // 오전/오후 구분
+      const startPeriod = startHour < 12 ? '오전' : '오후';
+      const endPeriod = endHour < 12 ? '오전' : '오후';
+
+      // 12시간 형식 변환
+      const startHour12 = startHour === 0 ? 12 : (startHour > 12 ? startHour - 12 : startHour);
+      const endHour12 = endHour === 0 ? 12 : (endHour > 12 ? endHour - 12 : endHour);
+
+      // 시간 포맷 (분이 00이면 생략, 앞자리 0 제거)
+      const formatTime = (hour, min, showPeriod = true, period = '') => {
+        const minStr = min > 0 ? `${min}분` : '';
+        return `${showPeriod ? period : ''}${hour}시${minStr}`;
+      };
+
+      const startTimeStr = formatTime(startHour12, startMin, true, startPeriod);
+      const endTimeStr = formatTime(endHour12, endMin, startPeriod !== endPeriod, endPeriod);
+
+      // 시간 차이 계산
+      const totalMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+
+      const durationStr = minutes > 0
+        ? `${hours}시간${minutes}분`
+        : `${hours}시간`;
+
+      return `${startTimeStr}~${endTimeStr}(${durationStr})`;
+    } catch (e) {
+      console.error('시간 포맷팅 오류:', e);
+      return timeSlot; // 오류 시 원본 반환
+    }
   }
 </script>
 
@@ -125,7 +204,7 @@
 
   <div class="legend">
     <span class="legend-item"
-      ><span class="dot" style="background:#E8F5E9"></span> 빈자리</span
+      ><span class="dot" style="background:#E8F5E9"></span> 예약접수</span
     >
     <span class="legend-item"
       ><span class="dot" style="background:#FFF3E0"></span> 일부예약</span
@@ -165,19 +244,20 @@
 
       <div class="slots-list">
         {#each selectedCourtSlots.slots as slotInfo (slotInfo.timeSlot)}
-          {@const style = getStatusStyle(slotInfo)}
+          {@const style = getStatusStyle(slotInfo, slotInfo.timeSlot)}
           {@const isRental = slotInfo.scheduleType === 'RENTAL'}
+          {@const isPast = isPastSlot(slotInfo.timeSlot, $selectedDate)}
           {@const confirmedPlayers = (slotInfo.players || []).filter(p => !p.isWaiting)}
           {@const waitingPlayers = (slotInfo.players || []).filter(p => p.isWaiting)}
           <div class="slot-wrapper">
             <button
               class="slot-item"
-              disabled={$auth && (slotInfo.status === "FULL" || slotInfo.status === "CLOSED" || isRental)}
+              disabled={$auth && (slotInfo.status === "FULL" || slotInfo.status === "CLOSED" || isRental || isPast)}
               style="background:{style.bg}; border-color:{style.color}"
               on:click={() => openDetail(slotInfo.timeSlot, slotInfo)}
             >
               <div class="slot-left">
-                <div class="slot-time">⏰ {slotInfo.timeSlot}</div>
+                <div class="slot-time">⏰ {formatTimeSlot(slotInfo.timeSlot)}</div>
                 {#if slotInfo.scheduleType}
                   <span class="slot-type" class:rental={isRental}>
                     {getScheduleTypeLabel(slotInfo.scheduleType)}
@@ -194,7 +274,7 @@
                     {slotInfo.reservedCount}/{slotInfo.capacity}명
                   </div>
                   <div class="slot-status" style="color:{style.color}">
-                    {getStatusLabel(slotInfo)}
+                    {getStatusLabel(slotInfo, slotInfo.timeSlot)}
                   </div>
                 </div>
               {/if}
@@ -204,7 +284,7 @@
             {#if slotInfo.players && slotInfo.players.length > 0}
               <div class="hover-popup">
                 <div class="popup-header">
-                  <span class="popup-time">⏰ {slotInfo.timeSlot}</span>
+                  <span class="popup-time">⏰ {formatTimeSlot(slotInfo.timeSlot)}</span>
                   <span class="popup-count">{slotInfo.reservedCount}/{slotInfo.capacity}명</span>
                 </div>
                 {#if confirmedPlayers.length > 0}
@@ -287,6 +367,35 @@
         <a href="/signup" class="login-modal-btn secondary">회원가입</a>
       </div>
       <button class="login-modal-close" on:click={() => (showLoginPrompt = false)}>닫기</button>
+    </div>
+  </div>
+{/if}
+
+<!-- Closed Prompt Modal -->
+{#if showClosedPrompt}
+  <div
+    class="login-overlay"
+    role="button"
+    tabindex="0"
+    on:click={() => (showClosedPrompt = false)}
+    on:keydown={(e) => e.key === "Escape" && (showClosedPrompt = false)}
+  >
+    <div
+      class="login-modal"
+      role="dialog"
+      aria-labelledby="closed-prompt-title"
+      on:click|stopPropagation
+      on:keydown|stopPropagation
+    >
+      <div class="login-modal-icon">⏰</div>
+      <h3 id="closed-prompt-title" class="login-modal-title">예약 마감되었습니다</h3>
+      <p class="login-modal-msg">
+        해당 시간대는 이미 지나 예약이 불가능합니다.<br />
+        다른 시간대를 선택해주세요.
+      </p>
+      <div class="login-modal-actions">
+        <button class="login-modal-btn primary" on:click={() => (showClosedPrompt = false)}>확인</button>
+      </div>
     </div>
   </div>
 {/if}

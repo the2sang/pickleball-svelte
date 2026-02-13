@@ -6,7 +6,17 @@
 
     let courts = [];
     let selectedCourtId = null;
-    let selectedDate = new Date().toISOString().split("T")[0]; // Today
+
+    // 오늘 날짜를 YYYY-MM-DD 형식으로 생성
+    function getTodayString() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    let selectedDate = getTodayString(); // 오늘 날짜 디폴트
     let timeSlots = [];
     let loading = false;
     let saving = false;

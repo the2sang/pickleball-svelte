@@ -126,6 +126,7 @@
                         class:error={errors.username}
                         placeholder="로그인 ID를 입력하세요"
                         autocomplete="username"
+                        on:keydown={(e) => e.key === 'Enter' && handleSubmit(e)}
                     />
                     {#if errors.username}
                         <span class="error-message">{errors.username}</span>
@@ -145,6 +146,7 @@
                         class:error={errors.password}
                         placeholder="비밀번호를 입력하세요"
                         autocomplete="current-password"
+                        on:keydown={(e) => e.key === 'Enter' && handleSubmit(e)}
                     />
                     {#if errors.password}
                         <span class="error-message">{errors.password}</span>

@@ -77,6 +77,47 @@ export function getNext7Days() {
 }
 
 /**
+ * Generate 7 days centered around a specific date
+ * @param {string} centerDate - Date in YYYY-MM-DD format
+ * @returns {{ value: string, label: string, isToday: boolean }[]}
+ */
+export function get7DaysAround(centerDate) {
+  const days = [];
+  const center = new Date(centerDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+
+  // 3 days before, center day, 3 days after
+  for (let i = -3; i <= 3; i++) {
+    const d = new Date(center);
+    d.setDate(center.getDate() + i);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const dateValue = `${d.getFullYear()}-${mm}-${dd}`;
+
+    days.push({
+      value: dateValue,
+      label: `${mm}/${dd} (${weekdays[d.getDay()]})`,
+      isToday: dateValue === formatDate(today)
+    });
+  }
+  return days;
+}
+
+/**
+ * Format date to YYYY-MM-DD
+ * @param {Date} date
+ * @returns {string}
+ */
+export function formatDate(date) {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+/**
  * @param {number} courtId
  * @param {string} timeSlot
  * @param {string} date

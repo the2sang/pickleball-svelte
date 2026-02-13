@@ -43,6 +43,7 @@
             <span class="user-name">{$auth.name || $auth.username}</span>님
           </span>
           {#if $auth.accountType === 'PARTNER'}
+            <a href="/partner" class="nav-link partner-link">사업장 관리</a>
             <a href="/partner/profile" class="nav-link profile-link">사업장정보</a>
           {:else}
             <a href="/profile" class="nav-link profile-link">회원정보</a>
@@ -173,6 +174,15 @@
   .signup-link:hover {
     background: rgba(255, 255, 255, 0.3);
     border-color: rgba(255, 255, 255, 0.6);
+    transform: translateY(-1px);
+  }
+  .partner-link {
+    background: rgba(56, 178, 172, 0.25);
+    border: 1.5px solid rgba(56, 178, 172, 0.5);
+  }
+  .partner-link:hover {
+    background: rgba(56, 178, 172, 0.4);
+    border-color: rgba(56, 178, 172, 0.7);
     transform: translateY(-1px);
   }
   .profile-link {
