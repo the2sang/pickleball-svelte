@@ -5,9 +5,12 @@
     modalOpen,
     modalData,
     refreshTrigger,
+    partnerInfo,
   } from "$lib/stores/reservation.js";
   import { auth } from "$lib/stores/auth.js";
+  import { getReservationCounts, isGeneralMember, isPastSlot } from "$lib/utils/reservationPolicy.js";
   import LevelBadge from "./LevelBadge.svelte";
+  import RentalRequestModal from "./RentalRequestModal.svelte";
 
   let courtSlotsMap = {};
   let timeRows = [];
@@ -15,6 +18,7 @@
   let selectedCourtId = null;
   let showLoginPrompt = false;
   let showClosedPrompt = false;
+  let rentalOpen = false;
 
   $: if ($selectedDate && $filteredCourts && $filteredCourts.length > 0 && $refreshTrigger >= 0) {
     loadSlots();
@@ -70,26 +74,6 @@
     return selectedCourtSlots.slots.find((s) => s.timeSlot === timeSlot);
   }
 
-  // 현재 시간이 지난 시간대인지 확인
-  function isPastSlot(timeSlot, gameDate) {
-    try {
-      // timeSlot: "06:00~09:00" 형식
-      const startTime = timeSlot.split('~')[0].trim();
-      const [hours, minutes] = startTime.split(':').map(Number);
-
-      // 게임 날짜와 시작 시간으로 Date 객체 생성
-      const slotDateTime = new Date(gameDate);
-      slotDateTime.setHours(hours, minutes, 0, 0);
-
-      // 현재 시간과 비교
-      const now = new Date();
-      return now > slotDateTime;
-    } catch (e) {
-      console.error('시간 파싱 오류:', e);
-      return false;
-    }
-  }
-
   function openDetail(timeSlot, info) {
     if (!info || !selectedCourt) return;
 
@@ -116,6 +100,17 @@
     selectedCourtId = courtId;
   }
 
+  function openRentalRequest() {
+    if (!$auth) {
+      showLoginPrompt = true;
+      return;
+    }
+    if ($auth.accountType === 'PARTNER') {
+      return;
+    }
+    rentalOpen = true;
+  }
+
   function getStatusStyle(info, timeSlot) {
     if (!info) return { bg: "#f7fafc", color: "#cbd5e0", opacity: 0.5 }; // No slot
 
@@ -125,10 +120,16 @@
     }
 
     if (info.status === "CLOSED") return { bg: "#edf2f7", color: "#a0aec0" };
-    if (info.status === "FULL") return { bg: "#FFEBEE", color: "#C62828" };
+
+    const counts = getReservationCounts(
+      info.reservedCount ?? info.players?.length ?? 0,
+      info.capacity ?? info.personnelNumber
+    );
+
+    if (counts.isFull) return { bg: "#FFEBEE", color: "#C62828" };
 
     // Available
-    if (info.reservedCount > 0) return { bg: "#FFF3E0", color: "#E65100" }; // Partial
+    if (counts.total > 0) return { bg: "#FFF3E0", color: "#E65100" }; // Partial
     return { bg: "#E8F5E9", color: "#2E7D32" }; // Empty
   }
 
@@ -141,8 +142,14 @@
     }
 
     if (info.status === "CLOSED") return "마감";
-    if (info.status === "FULL") return "마감";
-    if (info.reservedCount > 0) return "예약가능";
+
+    const counts = getReservationCounts(
+      info.reservedCount ?? info.players?.length ?? 0,
+      info.capacity ?? info.personnelNumber
+    );
+
+    if (counts.isFull) return "마감";
+    if (counts.total > 0) return "예약가능";
     return "예약접수";
   }
 
@@ -193,7 +200,7 @@
   }
 </script>
 
-<div class="card slide-up">
+<div class="pb-card card slide-up">
   <div class="step-header">
     <span class="step-number">3</span>
     <span class="step-title">시간대별 게임 현황</span>
@@ -218,17 +225,22 @@
   </div>
 
   <!-- Court Tabs -->
-  <div class="tabs">
-    {#each $filteredCourts as court (court.id)}
-      <button
-        class="tab"
-        class:active={selectedCourtId === court.id}
-        on:click={() => selectCourt(court.id)}
-      >
-        <div class="tab-name">{court.courtName || court.name || '코트'}</div>
-        <LevelBadge level={court.courtLevel || court.level} />
-      </button>
-    {/each}
+  <div class="tabs-row">
+    <div class="tabs">
+      {#each $filteredCourts as court (court.id)}
+        <button
+          class="tab"
+          class:active={selectedCourtId === court.id}
+          on:click={() => selectCourt(court.id)}
+        >
+          <div class="tab-name">{court.courtName || court.name || '코트'}</div>
+          <LevelBadge level={court.courtLevel || court.level} />
+        </button>
+      {/each}
+    </div>
+    {#if $auth && $auth.accountType !== 'PARTNER'}
+      <button class="rental-btn" on:click={openRentalRequest}>대관신청</button>
+    {/if}
   </div>
 
   <!-- Court Content -->
@@ -246,13 +258,19 @@
         {#each selectedCourtSlots.slots as slotInfo (slotInfo.timeSlot)}
           {@const style = getStatusStyle(slotInfo, slotInfo.timeSlot)}
           {@const isRental = slotInfo.scheduleType === 'RENTAL'}
+          {@const isGeneral = !!$auth && isGeneralMember($auth?.accountType)}
+          {@const isRentalRestricted = isRental && isGeneral}
           {@const isPast = isPastSlot(slotInfo.timeSlot, $selectedDate)}
+          {@const counts = getReservationCounts(
+            slotInfo.reservedCount ?? slotInfo.players?.length ?? 0,
+            slotInfo.capacity ?? slotInfo.personnelNumber ?? selectedCourtSlots.personnelNumber
+          )}
           {@const confirmedPlayers = (slotInfo.players || []).filter(p => !p.isWaiting)}
           {@const waitingPlayers = (slotInfo.players || []).filter(p => p.isWaiting)}
           <div class="slot-wrapper">
             <button
               class="slot-item"
-              disabled={$auth && (slotInfo.status === "FULL" || slotInfo.status === "CLOSED" || isRental || isPast)}
+              disabled={$auth && (slotInfo.status === "CLOSED" || isPast || isRentalRestricted || counts.isFull)}
               style="background:{style.bg}; border-color:{style.color}"
               on:click={() => openDetail(slotInfo.timeSlot, slotInfo)}
             >
@@ -264,14 +282,14 @@
                   </span>
                 {/if}
               </div>
-              {#if isRental}
+              {#if isRentalRestricted}
                 <div class="slot-info">
                   <div class="rental-notice">일반 예약 불가</div>
                 </div>
               {:else}
                 <div class="slot-info">
                   <div class="slot-count" style="color:{style.color}">
-                    {slotInfo.reservedCount}/{slotInfo.capacity}명
+                    {counts.total}/{counts.cap}명
                   </div>
                   <div class="slot-status" style="color:{style.color}">
                     {getStatusLabel(slotInfo, slotInfo.timeSlot)}
@@ -304,7 +322,7 @@
                     {/each}
                   </div>
                 {/if}
-                {#if waitingPlayers.length > 0}
+                 {#if waitingPlayers.length > 0}
                   <div class="popup-section waiting">
                     <div class="popup-section-title waiting">대기 ({waitingPlayers.length}명)</div>
                     {#each waitingPlayers as p (p.orderNumber)}
@@ -320,9 +338,9 @@
                       </div>
                     {/each}
                   </div>
-                {/if}
+                 {/if}
               </div>
-            {:else if !isRental}
+            {:else if !isRentalRestricted}
               <div class="hover-popup">
                 <div class="popup-empty">아직 예약자가 없습니다</div>
               </div>
@@ -352,6 +370,7 @@
     <div
       class="login-modal"
       role="dialog"
+      tabindex="0"
       aria-labelledby="login-prompt-title"
       on:click|stopPropagation
       on:keydown|stopPropagation
@@ -383,6 +402,7 @@
     <div
       class="login-modal"
       role="dialog"
+      tabindex="0"
       aria-labelledby="closed-prompt-title"
       on:click|stopPropagation
       on:keydown|stopPropagation
@@ -400,12 +420,18 @@
   </div>
 {/if}
 
+<RentalRequestModal
+  open={rentalOpen}
+  onclose={() => (rentalOpen = false)}
+  partnerName={$partnerInfo?.businessPartner || $partnerInfo?.name || ''}
+  courts={$filteredCourts}
+  defaultCourtId={selectedCourtId}
+  defaultDate={$selectedDate}
+/>
+
 <style>
   .card {
-    background: #fff;
-    border-radius: 14px;
     padding: 20px;
-    box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
   }
   .slide-up {
     animation: slideUp 0.4s ease;
@@ -458,12 +484,37 @@
   }
 
   /* Tabs */
+  .tabs-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
   .tabs {
     display: flex;
     gap: 8px;
-    margin-bottom: 20px;
     overflow-x: auto;
     padding-bottom: 4px;
+    flex: 1;
+  }
+
+  .rental-btn {
+    flex-shrink: 0;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(135deg, #1a365d, #2a4a7f);
+    color: #fff;
+    font-weight: 800;
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(26, 54, 93, 0.22);
+    transition: transform 0.15s, box-shadow 0.15s;
+    white-space: nowrap;
+  }
+  .rental-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(26, 54, 93, 0.26);
   }
   .tab {
     padding: 12px 20px;

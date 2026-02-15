@@ -4,6 +4,12 @@
   import PlayerChip from './PlayerChip.svelte';
   import { selectedDate, modalOpen, modalData, confirmOpen, refreshTrigger } from '$lib/stores/reservation.js';
   import { auth } from '$lib/stores/auth.js';
+  import {
+    getReservationCounts,
+    isCancelDeadlinePassed,
+    isGeneralMember,
+  } from '$lib/utils/reservationPolicy.js';
+  import { parseApiErrorResponse } from '$lib/utils/apiError.js';
 
   let cancelLoading = $state(false);
   let cancelError = $state('');
@@ -34,8 +40,8 @@
       });
 
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || '예약 취소에 실패했습니다.');
+        const apiErr = await parseApiErrorResponse(res);
+        throw new Error(apiErr.message);
       }
 
       modalOpen.set(false);
@@ -50,10 +56,23 @@
   const players = $derived($modalData?.reservation?.players ?? []);
   const playerCount = $derived(players.length);
   const capacity = $derived($modalData?.reservation?.capacity ?? $modalData?.court?.capacity ?? 6);
+  const reservedCount = $derived($modalData?.reservation?.reservedCount ?? playerCount);
+  const counts = $derived(getReservationCounts(reservedCount, capacity));
+
   const confirmedPlayers = $derived(players.filter(p => !p.isWaiting));
   const waitingPlayers = $derived(players.filter(p => p.isWaiting));
-  const isFull = $derived(playerCount >= capacity);
-  const canReserve = $derived(playerCount < capacity + 10); // 최대 10명까지 대기 가능
+
+  const status = $derived(String($modalData?.reservation?.status ?? '').trim().toUpperCase());
+  const scheduleType = $derived(String($modalData?.reservation?.scheduleType ?? '').trim().toUpperCase());
+  const isClosed = $derived(status === 'CLOSED');
+  const isRental = $derived(scheduleType === 'RENTAL');
+  const isRentalRestricted = $derived(isRental && isGeneralMember($auth?.accountType));
+  const isFull = $derived(counts.isFull);
+  const canReserve = $derived(!isClosed && !isRentalRestricted && !isFull);
+
+  const cancelDeadlinePassed = $derived(
+    !$modalData ? false : isCancelDeadlinePassed($modalData.timeSlot, $selectedDate)
+  );
 
   const currentUsername = $derived($auth?.username ?? '');
   const myReservation = $derived(players.find(p => p.username === currentUsername) ?? null);
@@ -116,20 +135,31 @@
       {/if}
 
       <div class="actions">
-        <button class="btn-secondary" onclick={() => modalOpen.set(false)}>닫기</button>
+        <button class="pb-btn-ghost btn-secondary" onclick={() => modalOpen.set(false)}>닫기</button>
         {#if isMyReserved}
-          <button class="btn-cancel-reservation" onclick={showCancelConfirm} disabled={cancelLoading}>
-            {cancelLoading ? '처리중...' : '예약 취소하기'}
-          </button>
-        {:else if !canReserve}
-          <button class="btn-disabled" disabled>대기 인원 마감</button>
-        {:else}
-          <button class="btn-primary" onclick={handleReserve}>
-            {#if isFull}
-              대기 예약 신청하기
+          <button
+            class="pb-btn-danger btn-cancel-reservation"
+            onclick={showCancelConfirm}
+            disabled={cancelLoading || cancelDeadlinePassed}
+            title={cancelDeadlinePassed ? '게임 개시 2시간 전 이후에는 취소할 수 없습니다' : ''}
+          >
+            {#if cancelLoading}
+              처리중...
+            {:else if cancelDeadlinePassed}
+              취소 불가(2시간 전)
             {:else}
-              예약 신청하기
+              예약 취소하기
             {/if}
+          </button>
+        {:else if isClosed}
+          <button class="pb-btn-ghost btn-disabled" disabled>마감</button>
+        {:else if isRentalRestricted}
+          <button class="pb-btn-ghost btn-disabled" disabled>일반 예약 불가</button>
+        {:else if isFull}
+          <button class="pb-btn-ghost btn-disabled" disabled>마감</button>
+        {:else}
+          <button class="pb-btn-primary btn-primary" onclick={handleReserve}>
+            예약 신청하기
           </button>
         {/if}
       </div>
@@ -150,14 +180,14 @@
       </p>
       <div class="cancel-actions">
         <button
-          class="btn-cancel-no"
+          class="pb-btn-ghost btn-cancel-no"
           onclick={() => cancelConfirmOpen = false}
           disabled={cancelLoading}
         >
           아니오
         </button>
         <button
-          class="btn-cancel-yes"
+          class="pb-btn-danger btn-cancel-yes"
           onclick={executeCancelReservation}
           disabled={cancelLoading}
         >
@@ -251,29 +281,16 @@
   }
   .actions { display: flex; gap: 10px; }
   .btn-secondary {
-    flex: 1; padding: 12px 0; border-radius: 10px;
-    border: 1.5px solid #e2e8f0; background: #fff;
-    color: #718096; font-weight: 600; cursor: pointer; font-size: 14px; font-family: inherit;
+    flex: 1;
   }
   .btn-primary {
-    flex: 2; padding: 12px 0; border-radius: 10px; border: none;
-    background: linear-gradient(135deg, #1a365d, #2a4a7f);
-    color: #fff; font-weight: 700; cursor: pointer; font-size: 14px; font-family: inherit;
-    box-shadow: 0 4px 12px rgba(26, 54, 93, 0.3); transition: all 0.15s;
+    flex: 2;
   }
-  .btn-primary:hover { transform: translateY(-1px); }
   .btn-cancel-reservation {
-    flex: 2; padding: 12px 0; border-radius: 10px; border: none;
-    background: linear-gradient(135deg, #c53030, #e53e3e);
-    color: #fff; font-weight: 700; cursor: pointer; font-size: 14px; font-family: inherit;
-    box-shadow: 0 4px 12px rgba(197, 48, 48, 0.3); transition: all 0.15s;
-  }
-  .btn-cancel-reservation:hover:not(:disabled) { transform: translateY(-1px); }
-  .btn-cancel-reservation:disabled {
-    opacity: 0.7; cursor: not-allowed;
+    flex: 2;
   }
   .btn-disabled {
-    flex: 2; padding: 12px 0; border-radius: 10px; border: none;
+    flex: 2;
     background: #e2e8f0;
     color: #a0aec0; font-weight: 700; font-size: 14px; font-family: inherit;
     cursor: not-allowed;
@@ -306,41 +323,8 @@
   }
   .btn-cancel-no {
     flex: 1;
-    padding: 12px 0;
-    border-radius: 10px;
-    border: 1.5px solid #e2e8f0;
-    background: #fff;
-    color: #718096;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 14px;
-    font-family: inherit;
-    transition: all 0.15s;
-  }
-  .btn-cancel-no:hover:not(:disabled) {
-    background: #f7fafc;
-    border-color: #cbd5e0;
   }
   .btn-cancel-yes {
     flex: 1;
-    padding: 12px 0;
-    border-radius: 10px;
-    border: none;
-    background: linear-gradient(135deg, #c53030, #e53e3e);
-    color: #fff;
-    font-weight: 700;
-    cursor: pointer;
-    font-size: 14px;
-    font-family: inherit;
-    box-shadow: 0 4px 12px rgba(197, 48, 48, 0.3);
-    transition: all 0.15s;
-  }
-  .btn-cancel-yes:hover:not(:disabled) {
-    transform: translateY(-1px);
-  }
-  .btn-cancel-no:disabled,
-  .btn-cancel-yes:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
   }
 </style>

@@ -1,9 +1,9 @@
 <script>
-  import { successOpen } from '$lib/stores/reservation.js';
+  import { successOpen, successMessage } from '$lib/stores/reservation.js';
 </script>
 
 {#if $successOpen}
-  <div class="toast">✅ 예약이 완료되었습니다!</div>
+  <div class="toast">✅ {$successMessage || '완료되었습니다!'}</div>
 {/if}
 
 <style>

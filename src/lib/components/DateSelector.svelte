@@ -55,7 +55,7 @@
   }
 </script>
 
-<div class="card slide-up">
+<div class="pb-card card slide-up">
   <div class="step-header">
     <span class="step-number">2</span>
     <span class="step-title">날짜 선택</span>
@@ -119,11 +119,8 @@
 
 <style>
   .card {
-    background: #fff;
-    border-radius: 14px;
     padding: 20px;
     margin-bottom: 16px;
-    box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
   }
   .slide-up {
     animation: slideUp 0.3s ease;
@@ -179,6 +176,7 @@
     align-items: center;
     gap: 10px;
     margin-bottom: 12px;
+    padding-bottom: 5px;
   }
   .nav-btn {
     width: 36px;
@@ -234,6 +232,7 @@
   .calendar-picker {
     margin-bottom: 12px;
     padding: 12px;
+    padding-bottom: 17px;
     background: #f7fafc;
     border-radius: 10px;
     border: 1.5px solid #e2e8f0;

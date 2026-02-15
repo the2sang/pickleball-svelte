@@ -4,6 +4,7 @@
     partnerInfo,
     courts,
   } from "$lib/stores/reservation.js";
+  import { auth } from "$lib/stores/auth.js";
   import { onMount } from "svelte";
 
   let partners = [];
@@ -11,6 +12,7 @@
   let loading = false;
   let totalCount = 0;
   let searchTimer;
+  let fetchError = "";
 
   onMount(() => {
     fetchPartners();
@@ -25,22 +27,37 @@
 
   async function fetchPartners() {
     loading = true;
+    fetchError = "";
+    const headers = {};
+
+    if ($auth?.accessToken) {
+      headers.Authorization = `Bearer ${$auth.accessToken}`;
+    }
+
     try {
       const params = new URLSearchParams({ page: "1", size: "20" });
       if (keyword.trim()) {
         params.set("keyword", keyword.trim());
       }
-      const res = await fetch(`/api/v1/partners?${params}`);
-      if (res.ok) {
+      const res = await fetch(`/api/v1/partners?${params}`, {
+        headers,
+      });
+        if (!res.ok) {
+          throw new Error(`사업장 조회 실패 (${res.status})`);
+        }
+
         const data = await res.json();
-        partners = data.data || [];
-        totalCount = data.total || 0;
+        const list = data?.data ?? data?.content ?? [];
+        partners = Array.isArray(list) ? list : [];
+        totalCount = typeof data?.total === "number" ? data.total : partners.length;
+      } catch (e) {
+        console.error("사업장 조회 실패:", e);
+        fetchError = e?.message || "사업장 목록을 불러오지 못했습니다.";
+        partners = [];
+        totalCount = 0;
+      } finally {
+        loading = false;
       }
-    } catch (e) {
-      console.error("사업장 조회 실패:", e);
-    } finally {
-      loading = false;
-    }
   }
 
   function selectPartner(id) {
@@ -53,8 +70,16 @@
   }
 
   async function fetchCourts(partnerId) {
+    const headers = {};
+
+    if ($auth?.accessToken) {
+      headers.Authorization = `Bearer ${$auth.accessToken}`;
+    }
+
     try {
-      const res = await fetch(`/api/v1/partners/${partnerId}/courts`);
+      const res = await fetch(`/api/v1/partners/${partnerId}/courts`, {
+        headers,
+      });
       if (res.ok) {
         const data = await res.json();
         courts.set(data);
@@ -73,7 +98,7 @@
   }
 </script>
 
-<div class="card">
+<div class="pb-card card">
   <div class="step-header">
     <span class="step-number">1</span>
     <span class="step-title">사업장 선택</span>
@@ -114,6 +139,12 @@
       <div class="spinner"></div>
       <span>검색 중...</span>
     </div>
+  {:else if fetchError}
+    <div class="error-box">
+      <span class="error-icon">⚠️</span>
+      <p class="error-text">{fetchError}</p>
+      <button class="pb-btn-ghost retry-btn" on:click={fetchPartners}>다시 시도</button>
+    </div>
   {:else if partners.length === 0}
     <div class="empty">
       <span class="empty-icon">🔍</span>
@@ -152,11 +183,8 @@
 
 <style>
   .card {
-    background: #fff;
-    border-radius: 14px;
     padding: 20px;
     margin-bottom: 16px;
-    box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
     animation: fadeIn 0.3s ease;
   }
   .step-header {
@@ -289,6 +317,34 @@
     color: #718096;
     font-size: 13px;
     margin: 0;
+  }
+
+  .error-box {
+    text-align: center;
+    border: 1.5px dashed #feb2b2;
+    border-radius: 12px;
+    background: #fff5f5;
+    color: #c53030;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .error-icon {
+    font-size: 24px;
+    line-height: 1;
+  }
+  .error-text {
+    color: #742a2a;
+    margin: 0;
+    font-size: 13px;
+  }
+  .retry-btn {
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 999px;
+    font-size: 12px;
   }
 
   /* Partner Grid */

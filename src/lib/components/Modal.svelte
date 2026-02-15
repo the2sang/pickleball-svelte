@@ -8,7 +8,7 @@
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="backdrop" onclick={onclose}></div>
-    <div class="modal-content">
+    <div class="pb-card modal-content">
       {@render children()}
     </div>
   </div>
@@ -31,12 +31,9 @@
   }
   .modal-content {
     position: relative;
-    background: #fff;
-    border-radius: 16px;
     padding: 28px;
     max-width: 480px;
     width: 90%;
-    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.15);
     animation: fadeIn 0.2s ease;
   }
   @keyframes fadeIn {

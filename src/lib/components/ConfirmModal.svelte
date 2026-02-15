@@ -6,9 +6,11 @@
     modalData,
     confirmOpen,
     successOpen,
+    successMessage,
     refreshTrigger,
   } from "$lib/stores/reservation.js";
   import { auth } from "$lib/stores/auth.js";
+  import { parseApiErrorResponse } from "$lib/utils/apiError.js";
 
   let loading = $state(false);
   let error = $state("");
@@ -37,15 +39,19 @@
       });
 
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || "예약 신청에 실패했습니다.");
+        const apiErr = await parseApiErrorResponse(res);
+        throw new Error(apiErr.message);
       }
 
       // Success
       confirmOpen.set(false);
+      successMessage.set('예약이 완료되었습니다!');
       successOpen.set(true);
       refreshTrigger.update((n) => n + 1);
-      setTimeout(() => successOpen.set(false), 2500);
+      setTimeout(() => {
+        successOpen.set(false);
+        successMessage.set('');
+      }, 2500);
     } catch (e) {
       error = e.message;
     } finally {
@@ -84,11 +90,11 @@
 
       <div class="actions">
         <button
-          class="btn-cancel"
+          class="pb-btn-ghost btn-cancel"
           onclick={() => confirmOpen.set(false)}
           disabled={loading}>취소</button
         >
-        <button class="btn-confirm" onclick={handleConfirm} disabled={loading}>
+        <button class="pb-btn-success btn-confirm" onclick={handleConfirm} disabled={loading}>
           {loading ? "처리중..." : "확정하기"}
         </button>
       </div>
@@ -134,33 +140,9 @@
   }
   .btn-cancel {
     flex: 1;
-    padding: 12px 0;
-    border-radius: 10px;
-    border: 1.5px solid #e2e8f0;
-    background: #fff;
-    color: #718096;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 14px;
-    font-family: inherit;
   }
   .btn-confirm {
     flex: 2;
-    padding: 12px 0;
-    border-radius: 10px;
-    border: none;
-    background: linear-gradient(135deg, #2e7d32, #43a047);
-    color: #fff;
-    font-weight: 700;
-    cursor: pointer;
-    font-size: 14px;
-    font-family: inherit;
-    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
-  }
-  .btn-confirm:disabled,
-  .btn-cancel:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
   }
   .error-msg {
     color: #e53e3e;
