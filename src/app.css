@@ -1,0 +1,207 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background: theme('colors.pb.bg');
+    color: theme('colors.pb.ink');
+  }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 3px;
+}
+
+@layer components {
+  .pb-shell {
+    @apply min-h-screen;
+  }
+
+  .pb-container {
+    @apply mx-auto w-full max-w-5xl px-4;
+  }
+
+  .pb-card {
+    @apply rounded-pb bg-pb-surface border border-pb-border shadow-card;
+  }
+
+  .pb-header {
+    @apply text-white;
+    padding: 18px 20px;
+    background: linear-gradient(135deg, theme('colors.pb.navy') 0%, theme('colors.pb.navy2') 55%, #1e3a5f 100%);
+    box-shadow: 0 10px 30px rgba(26, 54, 93, 0.28);
+  }
+
+  .pb-header-inner {
+    @apply pb-container flex items-center justify-between gap-3;
+  }
+
+  .pb-brand-link {
+    @apply flex items-center gap-3 no-underline;
+    transition: opacity 0.15s;
+  }
+
+  .pb-brand-link:hover {
+    opacity: 0.85;
+  }
+
+  .pb-brand-logo {
+    height: 60px;
+    width: auto;
+    display: block;
+  }
+
+  .pb-brand-title {
+    @apply font-extrabold tracking-[-0.02em];
+    font-size: 16px;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 520px) {
+    .pb-header-inner {
+      align-items: flex-start;
+      padding-top: 2px;
+      padding-bottom: 2px;
+    }
+
+    .pb-brand-logo {
+      height: 48px;
+    }
+
+    .pb-brand-title {
+      white-space: normal;
+      max-width: 66vw;
+      line-height: 1.2;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  }
+
+  .pb-nav {
+    @apply flex items-center gap-2;
+  }
+
+  .pb-user-pill {
+    @apply flex items-center gap-2 rounded-xl px-3 py-2 text-[13px] font-bold;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+  }
+
+  .pb-card-hd {
+    @apply flex items-center justify-between gap-3 px-5 pt-5;
+  }
+
+  .pb-card-bd {
+    @apply px-5 pb-5;
+  }
+
+  .pb-title {
+    @apply text-[15px] font-extrabold tracking-[-0.01em] text-pb-ink;
+  }
+
+  .pb-subtitle {
+    @apply text-[13px] font-bold text-pb-muted;
+  }
+
+  .pb-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-extrabold text-[13px] transition;
+  }
+
+  .pb-btn-primary {
+    @apply pb-btn text-white shadow-lift;
+    background: linear-gradient(135deg, theme('colors.pb.navy'), theme('colors.pb.navy2'));
+  }
+
+  .pb-btn-primary:hover {
+    transform: translateY(-1px);
+  }
+
+  .pb-btn-ghost {
+    @apply pb-btn bg-white border border-pb-border text-pb-muted;
+  }
+
+  .pb-btn-success {
+    @apply pb-btn text-white;
+    background: linear-gradient(135deg, theme('colors.pb.green'), #43a047);
+    box-shadow: 0 8px 24px rgba(46, 125, 50, 0.22);
+  }
+
+  .pb-btn-danger {
+    @apply pb-btn text-white;
+    background: linear-gradient(135deg, theme('colors.pb.red'), #e53e3e);
+    box-shadow: 0 8px 24px rgba(197, 48, 48, 0.22);
+  }
+
+  .pb-btn:disabled,
+  .pb-btn-primary:disabled,
+  .pb-btn-ghost:disabled,
+  .pb-btn-success:disabled,
+  .pb-btn-danger:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .pb-input {
+    @apply w-full rounded-xl border border-pb-border bg-white px-3 py-2.5 text-[14px] font-semibold text-pb-ink outline-none transition;
+  }
+
+  .pb-input:focus {
+    border-color: theme('colors.pb.navy2');
+    box-shadow: 0 0 0 3px rgba(42, 74, 127, 0.12);
+  }
+
+  .pb-label {
+    @apply text-[12px] font-extrabold text-pb-muted;
+  }
+
+  .pb-field {
+    @apply flex flex-col gap-1.5;
+  }
+
+  .pb-actions {
+    @apply flex gap-2;
+  }
+
+  .pb-badge {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-[12px] font-extrabold;
+  }
+
+  .pb-badge-green {
+    @apply pb-badge;
+    background: #e8f5e9;
+    color: theme('colors.pb.green');
+    border: 1px solid #a5d6a7;
+  }
+
+  .pb-badge-orange {
+    @apply pb-badge;
+    background: #fff3e0;
+    color: theme('colors.pb.orange');
+    border: 1px solid #ffcc80;
+  }
+
+  .pb-badge-gray {
+    @apply pb-badge;
+    background: #edf2f7;
+    color: #4a5568;
+    border: 1px solid #e2e8f0;
+  }
+}
