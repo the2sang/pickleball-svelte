@@ -1,4 +1,5 @@
 <script>
+    import { onMount } from "svelte";
     import { goto } from "$app/navigation";
     import { auth } from "$lib/stores/auth.js";
     import logo from "$lib/assets/main_logo.png";
@@ -11,6 +12,24 @@
     let errors = { username: "", password: "" };
     let loginError = "";
     let loading = false;
+
+    onMount(() => {
+        auth.refresh();
+        const user = getUser();
+        const accountType = (user?.accountType || "").trim().toUpperCase();
+
+        if (accountType === "ADMIN") {
+            goto("/admin/partners");
+            return;
+        }
+    });
+
+    function getUser() {
+        let user = null;
+        const unsub = auth.subscribe((v) => (user = v));
+        unsub();
+        return user;
+    }
 
     function validateForm() {
         let isValid = true;

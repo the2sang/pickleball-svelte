@@ -3,10 +3,43 @@
     import { auth } from "$lib/stores/auth.js";
     import logo from "$lib/assets/main_logo.png";
 
+    const quickAccounts = [
+        { label: "파트너 - admin1", username: "admin1", role: "PARTNER" },
+        { label: "파트너 - admin2", username: "admin2", role: "PARTNER" },
+        { label: "파트너 - admin3", username: "admin3", role: "PARTNER" },
+        { label: "회원 - user1", username: "user1", role: "MEMBER" },
+        { label: "회원 - user2", username: "user2", role: "MEMBER" },
+        { label: "회원 - user3", username: "user3", role: "MEMBER" },
+        { label: "회원 - user4", username: "user4", role: "MEMBER" },
+        { label: "회원 - user5", username: "user5", role: "MEMBER" },
+        { label: "회원 - user6", username: "user6", role: "MEMBER" },
+        { label: "회원 - user7", username: "user7", role: "MEMBER" },
+        { label: "회원 - user8", username: "user8", role: "MEMBER" },
+        { label: "회원 - user9", username: "user9", role: "MEMBER" },
+        { label: "회원 - user10", username: "user10", role: "MEMBER" },
+    ];
+
+    const quickAccountsSorted = [...quickAccounts].sort((a, b) => {
+        if (a.role === b.role) {
+            return a.username.localeCompare(b.username);
+        }
+
+        const rolePriority = {
+            PARTNER: 0,
+            MEMBER: 1,
+        };
+
+        return rolePriority[a.role] - rolePriority[b.role];
+    });
+    const isQuickLoginEnabled = import.meta.env.DEV;
+    const quickPassword = "alswl1!314";
+
     let formData = {
         username: "",
         password: "",
     };
+
+    let selectedQuickAccount = "";
 
     let errors = {
         username: "",
@@ -32,6 +65,27 @@
         }
 
         return isValid;
+    }
+
+    function handleQuickAccountChange(username) {
+        selectedQuickAccount = username;
+
+        if (!username) {
+            return;
+        }
+
+        formData = {
+            ...formData,
+            username,
+            password: quickPassword,
+        };
+        errors = { ...errors, username: "", password: "" };
+    }
+
+    function handleManualInput() {
+        if (selectedQuickAccount) {
+            selectedQuickAccount = "";
+        }
     }
 
     async function handleSubmit(e) {
@@ -66,8 +120,13 @@
             const data = await response.json();
             auth.login(data);
 
-            // accountType에 따라 분기
-            if (data.accountType === "PARTNER") {
+            const isAdminAccount = formData.username.trim().toLowerCase() === "admin";
+            const accountType = (data.accountType || "").trim().toUpperCase();
+
+            // 계정 타입 및 시스템 관리자 계정 강제 라우팅
+            if (accountType === "ADMIN" || isAdminAccount) {
+                goto("/admin");
+            } else if (accountType === "PARTNER") {
                 goto("/partner");
             } else {
                 goto("/");
@@ -113,6 +172,30 @@
                     </div>
                 {/if}
 
+                {#if isQuickLoginEnabled}
+                    <div class="form-group">
+                        <label for="quick-account" class="label">
+                            개발용 계정 빠른 선택
+                        </label>
+                        <select
+                            id="quick-account"
+                            class="input"
+                            bind:value={selectedQuickAccount}
+                            on:change={(e) => handleQuickAccountChange(e.target.value)}
+                        >
+                            <option value="">선택 안함</option>
+                            {#each quickAccountsSorted as account}
+                                <option value={account.username}>
+                                    {account.label}
+                                </option>
+                            {/each}
+                        </select>
+                    </div>
+                    <p class="quick-helper">
+                        시스템 관리자 계정은 <a href="/admin">관리자 로그인</a>에서 접속하세요.
+                    </p>
+                {/if}
+
                 <!-- username -->
                 <div class="form-group">
                     <label for="username" class="label">
@@ -126,6 +209,7 @@
                         class:error={errors.username}
                         placeholder="로그인 ID를 입력하세요"
                         autocomplete="username"
+                        on:input={handleManualInput}
                         on:keydown={(e) => e.key === 'Enter' && handleSubmit(e)}
                     />
                     {#if errors.username}
@@ -146,6 +230,7 @@
                         class:error={errors.password}
                         placeholder="비밀번호를 입력하세요"
                         autocomplete="current-password"
+                        on:input={handleManualInput}
                         on:keydown={(e) => e.key === 'Enter' && handleSubmit(e)}
                     />
                     {#if errors.password}
@@ -369,6 +454,22 @@
         text-align: center;
         font-size: 13px;
         color: #718096;
+    }
+
+    .quick-helper {
+        margin: 6px 0 2px;
+        font-size: 12px;
+        color: #718096;
+    }
+
+    .quick-helper a {
+        color: #1a365d;
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+    .quick-helper a:hover {
+        text-decoration: underline;
     }
 
     .signup-anchor {
