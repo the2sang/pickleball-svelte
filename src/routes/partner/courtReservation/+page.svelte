@@ -148,8 +148,37 @@
         }
     }
 
+    function hasOverlap(slots) {
+        if (slots.length < 2) return null;
+
+        const toMinutes = (t) => {
+            const [h, m] = t.split(":").map(Number);
+            return h === 0 && t === "24:00" ? 1440 : h * 60 + m;
+        };
+
+        const sorted = [...slots]
+            .map((s, i) => ({ ...s, idx: i }))
+            .sort((a, b) => toMinutes(a.startTime) - toMinutes(b.startTime));
+
+        for (let i = 0; i < sorted.length - 1; i++) {
+            const curEnd = toMinutes(sorted[i].endTime);
+            const nextStart = toMinutes(sorted[i + 1].startTime);
+            if (curEnd > nextStart) {
+                return { a: sorted[i], b: sorted[i + 1] };
+            }
+        }
+        return null;
+    }
+
     async function handleSave() {
         if (!selectedCourtId) return;
+
+        const overlap = hasOverlap(timeSlots);
+        if (overlap) {
+            error = `시간대가 겹칩니다: ${overlap.a.startTime}~${overlap.a.endTime} ↔ ${overlap.b.startTime}~${overlap.b.endTime}`;
+            return;
+        }
+
         saving = true;
         error = "";
         successMsg = "";
@@ -177,7 +206,13 @@
                 },
             );
 
-            if (!res.ok) throw new Error("저장 실패");
+            if (!res.ok) {
+                const body = await res.json().catch(() => null);
+                if (body?.code === "SCHEDULE_OVERLAP") {
+                    throw new Error("시간대가 겹치는 스케줄이 있습니다. 시간을 조정해주세요.");
+                }
+                throw new Error(body?.message || "저장 실패");
+            }
 
             successMsg = "저장되었습니다.";
             setTimeout(() => (successMsg = ""), 3000);
