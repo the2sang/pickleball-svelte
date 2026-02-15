@@ -1,6 +1,7 @@
 <script>
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
+    import { page } from "$app/stores";
     import { auth } from "$lib/stores/auth.js";
     import logo from "$lib/assets/main_logo.png";
 
@@ -71,20 +72,39 @@
     <title>코트 관리 - LESGO PiCKLE</title>
 </svelte:head>
 
-<div class="page">
-    <header class="header">
-        <div class="header-inner">
+<div class="pb-shell page">
+    <header class="pb-header header">
+        <div class="pb-header-inner header-inner">
             <div class="header-content">
-                <a href="/partner" class="brand-link">
-                    <img src={logo} alt="LESGO PiCKLE" class="brand-logo" />
-                    <h3 class="brand-title">코트 관리</h3>
+                <a href="/partner" class="pb-brand-link brand-link">
+                    <img src={logo} alt="LESGO PiCKLE" class="pb-brand-logo brand-logo" />
+                    <h3 class="pb-brand-title brand-title">코트 관리</h3>
                 </a>
             </div>
-            <div class="nav-links">
-                <button class="nav-link logout-btn" on:click={handleLogout}
+      <div class="pb-nav nav-links">
+                <span class="pb-user-pill user-greeting">
+                    <span class="user-icon">🏸</span>
+                    <span class="user-name">{$auth?.name || $auth?.username || '사용자'}</span>님
+                </span>
+                <a
+                    href="/partner/court"
+                    class={`pb-btn-ghost nav-link court-link ${$page.url.pathname === '/partner/court' || $page.url.pathname.startsWith('/partner/court/') ? 'is-active' : ''}`}
+                    >코트관리</a
+                >
+                <a
+                    href="/partner/courtReservation"
+                    class={`pb-btn-ghost nav-link court-link ${$page.url.pathname === '/partner/courtReservation' ? 'is-active' : ''}`}
+                    >예약설정</a
+                >
+                <a
+                    href="/partner/profile"
+                    class={`pb-btn-ghost nav-link profile-link ${$page.url.pathname === '/partner/profile' ? 'is-active' : ''}`}
+                    >사업장정보</a
+                >
+                <button class="pb-btn-ghost nav-link logout-btn" on:click={handleLogout}
                     >로그아웃</button
                 >
-            </div>
+      </div>
         </div>
     </header>
 
@@ -161,51 +181,56 @@
         min-height: 100vh;
         background: #f7fafc;
     }
-    .header {
-        background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
-        color: #fff;
-        padding: 16px 20px;
+    .header { }
+    .header-inner { }
+    .brand-link { }
+    .brand-logo { }
+    .brand-title { }
+    .nav-links { }
+    .user-greeting { white-space: nowrap; }
+    .user-icon {
+        font-size: 16px;
     }
-    .header-inner {
-        max-width: 800px;
-        margin: 0 auto;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-    .brand-link {
-        display: flex;
-        align-items: center;
-        text-decoration: none;
-        gap: 12px;
-    }
-    .brand-logo {
-        height: 60px;
-        width: auto;
-    }
-    .brand-title {
-        margin: 0;
-        font-size: 18px;
+    .user-name {
+        color: #90cdf4;
         font-weight: 700;
-        color: #fff;
     }
-    .nav-links {
-        display: flex;
-        gap: 8px;
+    .nav-link {
+        padding: 8px 14px;
+        border-radius: 8px;
+        color: #2d3748;
+        background: rgba(255, 255, 255, 0.16);
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 700;
+        white-space: nowrap;
+        transition: all 0.15s;
+        border: 1px solid transparent;
     }
-    .logout-btn {
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        color: white;
-        padding: 6px 14px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 600;
-        transition: 0.2s;
+    .nav-link:hover {
+        background: rgba(255, 255, 255, 0.3);
+        color: #1a365d;
+        border-color: rgba(255, 255, 255, 0.45);
+        transform: translateY(-1px);
     }
-    .logout-btn:hover {
-        background: rgba(255, 50, 50, 0.3);
+    .nav-link.is-active {
+        color: #1a365d;
+        background: rgba(255, 255, 255, 0.34);
+        border-color: rgba(255, 255, 255, 0.6);
+        box-shadow: 0 8px 18px rgba(26, 54, 93, 0.14);
     }
+    .court-link {
+        color: #1a365d;
+    }
+    .profile-link {
+        background: rgba(72, 187, 120, 0.2);
+        border: 1.5px solid rgba(72, 187, 120, 0.4);
+    }
+    .profile-link:hover {
+        background: rgba(72, 187, 120, 0.35);
+        border-color: rgba(72, 187, 120, 0.6);
+    }
+    .logout-btn { }
 
     .main {
         max-width: 800px;

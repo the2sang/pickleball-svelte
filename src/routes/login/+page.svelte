@@ -146,16 +146,14 @@
     <title>로그인 - LESGO PiCKLE</title>
 </svelte:head>
 
-<div class="page">
+<div class="pb-shell page">
     <!-- Header -->
-    <header class="header">
-        <div class="header-inner">
+    <header class="pb-header header">
+        <div class="pb-header-inner header-inner">
             <div class="header-content">
-                <a href="/" class="brand-link">
-                    <img src={logo} alt="LESGO PiCKLE" class="brand-logo" />
-                    <h1 class="brand-title">
-                        피클볼 게임 예약하러가자..Let's GO! - 로그인
-                    </h1>
+                <a href="/" class="pb-brand-link brand-link">
+                    <img src={logo} alt="LESGO PiCKLE" class="pb-brand-logo brand-logo" />
+                    <h1 class="pb-brand-title brand-title">피클볼 게임 예약하러가자..Let's GO! - 로그인</h1>
                 </a>
             </div>
         </div>
@@ -270,52 +268,12 @@
         background: linear-gradient(135deg, #f0f4f8 0%, #e8edf5 100%);
     }
 
-    .header {
-        background: linear-gradient(
-            135deg,
-            #1a365d 0%,
-            #2a4a7f 50%,
-            #1e3a5f 100%
-        );
-        padding: 20px 24px;
-        color: #fff;
-        box-shadow: 0 4px 20px rgba(26, 54, 93, 0.3);
-    }
-
-    .header-inner {
-        max-width: 600px;
-        margin: 0 auto;
-    }
-
-    .header-content {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .brand-link {
-        display: flex;
-        align-items: center;
-        text-decoration: none;
-        gap: 12px;
-        transition: opacity 0.2s;
-    }
-    .brand-link:hover {
-        opacity: 0.8;
-    }
-    .brand-logo {
-        height: 70px;
-        width: auto;
-        display: block;
-    }
-    .brand-title {
-        margin: 0;
-        font-size: 17px;
-        font-weight: 800;
-        color: #fff;
-        letter-spacing: -0.5px;
-        white-space: nowrap;
-    }
+    .header { }
+    .header-inner { }
+    .header-content { }
+    .brand-link { }
+    .brand-logo { }
+    .brand-title { }
 
     .main {
         max-width: 600px;

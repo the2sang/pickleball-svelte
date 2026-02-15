@@ -2,6 +2,8 @@
     import { goto } from "$app/navigation";
     import { auth } from "$lib/stores/auth.js";
     import logo from "$lib/assets/main_logo.png";
+    import Modal from "$lib/components/Modal.svelte";
+    import { TERMS_CONTENT } from "$lib/data/terms.js";
 
     // 회원 유형: MEMBER(일반유저) / PARTNER(사업장)
     let accountType = "MEMBER";
@@ -37,6 +39,37 @@
     let submitted = false;
     let showConfirmModal = false;
     let signupError = "";
+
+    let agreements = {
+        all: false,
+        service: false,
+        privacy: false,
+        marketing: false,
+    };
+
+    let termsModalOpen = false;
+    let termsModalKey = "service";
+
+    function openTerms(key) {
+        termsModalKey = key;
+        termsModalOpen = true;
+    }
+
+    function toggleAllAgreements() {
+        const next = !agreements.all;
+        agreements = {
+            all: next,
+            service: next,
+            privacy: next,
+            marketing: next,
+        };
+    }
+
+    function toggleAgreement(key) {
+        const next = { ...agreements, [key]: !agreements[key] };
+        next.all = next.service && next.privacy && next.marketing;
+        agreements = next;
+    }
 
     function switchType(type) {
         accountType = type;
@@ -105,6 +138,12 @@
             }
         }
 
+        // 약관 검증 (일반/파트너 공통)
+        if (!agreements.service || !agreements.privacy) {
+            errors.agreements = "필수 약관에 동의해주세요";
+            isValid = false;
+        }
+
         // 사업장 전용 검증
         if (accountType === "PARTNER") {
             if (!formData.businessPartner.trim()) {
@@ -156,6 +195,10 @@
                 duprPoint: formData.duprPoint || null,
                 email: formData.email || null,
                 sex: formData.sex,
+                agreeService: agreements.service,
+                agreePrivacy: agreements.privacy,
+                agreeMarketing: agreements.marketing,
+                agreeAll: agreements.all,
             };
         } else {
             url = "/api/v1/auth/signup/partner";
@@ -171,6 +214,10 @@
                 partnerAccount: formData.partnerAccount || null,
                 partnerBank: formData.partnerBank || null,
                 howToPay: formData.howToPay || null,
+                agreeService: agreements.service,
+                agreePrivacy: agreements.privacy,
+                agreeMarketing: agreements.marketing,
+                agreeAll: agreements.all,
             };
         }
 
@@ -233,16 +280,16 @@
 
 <div class="page">
     <!-- Header -->
-    <header class="header">
-        <div class="header-inner">
-            <div class="header-content">
-                <a href="/" class="brand-link">
-                    <img src={logo} alt="LESGO PiCKLE" class="brand-logo" />
-                    <h3 class="brand-title">피클볼 예약하러 가자..Let's GO! - 회원가입</h3>
-                </a>
-            </div>
-        </div>
-    </header>
+  <header class="pb-header header">
+    <div class="pb-header-inner header-inner">
+      <div class="header-content">
+        <a href="/" class="pb-brand-link brand-link">
+          <img src={logo} alt="LESGO PiCKLE" class="pb-brand-logo brand-logo" />
+          <h3 class="pb-brand-title brand-title">피클볼 예약하러 가자..Let's GO! - 회원가입</h3>
+        </a>
+      </div>
+    </div>
+  </header>
 
     <!-- Main Content -->
     <main class="main">
@@ -274,6 +321,94 @@
                     <div class="signup-error">
                         <span class="error-icon">⚠️</span>
                         {signupError}
+                    </div>
+                {/if}
+
+                {#if accountType === "MEMBER" || accountType === "PARTNER"}
+                    <div class="pb-card agreements-card">
+                        <div class="agreements-title">가입 약관 동의</div>
+
+                        <div class="agreement-row all">
+                            <label class="agreement-left">
+                                <input
+                                    type="checkbox"
+                                    checked={agreements.all}
+                                    on:change={toggleAllAgreements}
+                                />
+                                <span class="agreement-text">모든 약관에 동의합니다.</span>
+                            </label>
+                        </div>
+
+                        <div class="agreement-row">
+                            <label class="agreement-left">
+                                <input
+                                    type="checkbox"
+                                    checked={agreements.service}
+                                    on:change={() => toggleAgreement("service")}
+                                />
+                                <span class="agreement-text">
+                                    {TERMS_CONTENT.service.title}
+                                    <span class="required">(필수)</span>
+                                </span>
+                            </label>
+                            <button
+                                type="button"
+                                class="pb-btn-ghost agreement-detail"
+                                on:click={() => openTerms("service")}
+                            >
+                                상세 보기
+                            </button>
+                        </div>
+
+                        <div class="agreement-row">
+                            <label class="agreement-left">
+                                <input
+                                    type="checkbox"
+                                    checked={agreements.privacy}
+                                    on:change={() => toggleAgreement("privacy")}
+                                />
+                                <span class="agreement-text">
+                                    {TERMS_CONTENT.privacy.title}
+                                    <span class="required">(필수)</span>
+                                </span>
+                            </label>
+                            <button
+                                type="button"
+                                class="pb-btn-ghost agreement-detail"
+                                on:click={() => openTerms("privacy")}
+                            >
+                                상세 보기
+                            </button>
+                        </div>
+
+                        <div class="agreement-row">
+                            <label class="agreement-left">
+                                <input
+                                    type="checkbox"
+                                    checked={agreements.marketing}
+                                    on:change={() => toggleAgreement("marketing")}
+                                />
+                                <span class="agreement-text">
+                                    {TERMS_CONTENT.marketing.title}
+                                    <span class="optional">(선택)</span>
+                                </span>
+                            </label>
+                            <button
+                                type="button"
+                                class="pb-btn-ghost agreement-detail"
+                                on:click={() => openTerms("marketing")}
+                            >
+                                상세 보기
+                            </button>
+                        </div>
+
+                        <div class="agreement-note">
+                            *14세 미만은 회원 가입이 제한됩니다.
+                        </div>
+
+                        {#if errors.agreements}
+                            <div class="field-error">{errors.agreements}</div>
+                        {/if}
                     </div>
                 {/if}
 
@@ -811,6 +946,32 @@
             </div>
         </div>
     {/if}
+
+    <Modal open={termsModalOpen} onclose={() => (termsModalOpen = false)}>
+        {#snippet children()}
+            <div class="terms-modal">
+                <div class="terms-modal-hd">
+                    <div class="terms-modal-title">
+                        {TERMS_CONTENT[termsModalKey]?.title || "약관"}
+                    </div>
+                </div>
+                <div class="terms-modal-body">
+                    <pre class="terms-modal-text">
+{TERMS_CONTENT[termsModalKey]?.body || ""}</pre
+                    >
+                </div>
+                <div class="terms-modal-actions">
+                    <button
+                        type="button"
+                        class="pb-btn-primary"
+                        on:click={() => (termsModalOpen = false)}
+                    >
+                        확인
+                    </button>
+                </div>
+            </div>
+        {/snippet}
+    </Modal>
 </div>
 
 <style>
@@ -818,49 +979,12 @@
         min-height: 100vh;
         background: linear-gradient(135deg, #f0f4f8 0%, #e8edf5 100%);
     }
-    .header {
-        background: linear-gradient(
-            135deg,
-            #1a365d 0%,
-            #2a4a7f 50%,
-            #1e3a5f 100%
-        );
-        padding: 20px 24px;
-        color: #fff;
-        box-shadow: 0 4px 20px rgba(26, 54, 93, 0.3);
-    }
-    .header-inner {
-        max-width: 640px;
-        margin: 0 auto;
-    }
-    .header-content {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-    .brand-link {
-        display: flex;
-        align-items: center;
-        text-decoration: none;
-        gap: 12px;
-        transition: opacity 0.2s;
-    }
-    .brand-link:hover {
-        opacity: 0.8;
-    }
-    .brand-logo {
-        height: 70px;
-        width: auto;
-        display: block;
-    }
-    .brand-title {
-        margin: 0;
-        font-size: 17px;
-        font-weight: 800;
-        color: #fff;
-        letter-spacing: -0.5px;
-        white-space: nowrap;
-    }
+    .header { }
+    .header-inner { }
+    .header-content { }
+    .brand-link { }
+    .brand-logo { }
+    .brand-title { }
 
     .main {
         max-width: 640px;
@@ -1049,6 +1173,111 @@
     .btn-secondary:hover {
         background: #f7fafc;
         border-color: #cbd5e0;
+    }
+
+    /* Agreements */
+    .agreements-card {
+        padding: 18px;
+        margin-top: 16px;
+        margin-bottom: 10px;
+    }
+    .agreements-title {
+        font-size: 15px;
+        font-weight: 800;
+        color: #1a365d;
+        margin-bottom: 12px;
+    }
+    .agreement-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 12px;
+        border: 1px solid #e2e8f0;
+        background: #f7fafc;
+        border-radius: 12px;
+        margin-bottom: 10px;
+    }
+    .agreement-row.all {
+        background: #fff;
+    }
+    .agreement-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+        cursor: pointer;
+        user-select: none;
+    }
+    .agreement-left input {
+        width: 18px;
+        height: 18px;
+        accent-color: #1a365d;
+    }
+    .agreement-text {
+        font-size: 13px;
+        font-weight: 700;
+        color: #2d3748;
+        line-height: 1.3;
+    }
+    .required {
+        color: #c53030;
+        font-weight: 800;
+        margin-left: 6px;
+        font-size: 12px;
+    }
+    .optional {
+        color: #718096;
+        font-weight: 800;
+        margin-left: 6px;
+        font-size: 12px;
+    }
+    .agreement-detail {
+        padding: 10px 12px;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+    .agreement-note {
+        font-size: 12px;
+        font-weight: 700;
+        color: #718096;
+        margin: 2px 2px 10px;
+    }
+    .field-error {
+        margin-top: 8px;
+        color: #e53e3e;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    /* Terms modal */
+    .terms-modal-title {
+        font-size: 16px;
+        font-weight: 900;
+        color: #1a365d;
+        margin-bottom: 10px;
+    }
+    .terms-modal-text {
+        background: #f7fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 14px;
+        font-size: 12px;
+        line-height: 1.7;
+        color: #2d3748;
+        max-height: 52vh;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    .terms-modal-actions {
+        margin-top: 12px;
+        display: flex;
+        justify-content: flex-end;
+    }
+    .terms-modal-actions button {
+        min-width: 120px;
     }
 
     @keyframes fadeIn {

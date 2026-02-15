@@ -105,17 +105,17 @@
     <title>사업장관리 - LESGO PiCKLE</title>
 </svelte:head>
 
-<div class="page">
-    <header class="header">
-        <div class="header-inner">
+<div class="pb-shell page">
+    <header class="pb-header header">
+        <div class="pb-header-inner header-inner">
             <div class="header-content">
-                <a href="/admin/partners" class="brand-link">
-                    <img src={logo} alt="LESGO PiCKLE" class="brand-logo" />
-                    <h3 class="brand-title">사업장관리</h3>
+                <a href="/admin/partners" class="pb-brand-link brand-link">
+                    <img src={logo} alt="LESGO PiCKLE" class="pb-brand-logo brand-logo" />
+                    <h3 class="pb-brand-title brand-title">사업장관리</h3>
                 </a>
             </div>
-            <div class="nav-links">
-                <button class="nav-link logout-btn" on:click={handleLogout}
+            <div class="pb-nav nav-links">
+                <button class="pb-btn-ghost nav-link logout-btn" on:click={handleLogout}
                     >로그아웃</button
                 >
             </div>
@@ -206,68 +206,15 @@
         min-height: 100vh;
         background: #f7fafc;
     }
-    .header {
-        background: linear-gradient(135deg, #1a365d 0%, #2d3748 100%);
-        color: #fff;
-        padding: 16px 20px;
-    }
-    .header-inner {
-        max-width: 960px;
-        margin: 0 auto;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-    }
-    .header-content {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-    .brand-link {
-        display: flex;
-        align-items: center;
-        text-decoration: none;
-        gap: 12px;
-        transition: opacity 0.2s;
-    }
-    .brand-link:hover {
-        opacity: 0.8;
-    }
-    .brand-logo {
-        height: 70px;
-        width: auto;
-        display: block;
-    }
-    .brand-title {
-        margin: 0;
-        font-size: 20px;
-        font-weight: 800;
-        color: #fff;
-        letter-spacing: -0.5px;
-        white-space: nowrap;
-    }
-    .nav-links {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-    }
-    .nav-link {
-        padding: 8px 18px;
-        border-radius: 8px;
-        color: #fff;
-        text-decoration: none;
-        font-size: 13px;
-        font-weight: 700;
-        white-space: nowrap;
-        transition: all 0.15s;
-    }
-    .logout-btn {
-        background: rgba(255, 255, 255, 0.1);
-        border: 1.5px solid rgba(255, 255, 255, 0.3);
-        cursor: pointer;
-        font-family: inherit;
-    }
+    .header { }
+    .header-inner { }
+    .header-content { }
+    .brand-link { }
+    .brand-logo { }
+    .brand-title { }
+    .nav-links { }
+    .nav-link { }
+    .logout-btn { }
     .logout-btn:hover {
         background: rgba(229, 62, 62, 0.3);
         border-color: rgba(229, 62, 62, 0.5);

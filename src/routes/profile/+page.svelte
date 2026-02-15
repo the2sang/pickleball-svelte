@@ -123,17 +123,21 @@
     <title>회원정보 수정 - LESGO PiCKLE</title>
 </svelte:head>
 
-<div class="page">
-    <header class="header">
-        <div class="header-inner">
+<div class="pb-shell page">
+    <header class="pb-header header">
+        <div class="pb-header-inner header-inner">
             <div class="header-content">
-                <a href="/" class="brand-link">
-                    <img src={logo} alt="LESGO PiCKLE" class="brand-logo" />
-                    <h3 class="brand-title">회원정보 수정</h3>
+                <a href="/" class="pb-brand-link brand-link">
+                    <img src={logo} alt="LESGO PiCKLE" class="pb-brand-logo brand-logo" />
+                    <h3 class="pb-brand-title brand-title">회원정보 수정</h3>
                 </a>
             </div>
-            <div class="nav-links">
-                <button class="nav-link logout-btn" on:click={handleLogout}
+            <div class="pb-nav nav-links">
+                <span class="pb-user-pill user-greeting">
+                    <span class="user-icon">👤</span>
+                    <span class="user-name">{$auth.name || $auth.username}</span>님
+                </span>
+                <button class="pb-btn-ghost nav-link logout-btn" on:click={handleLogout}
                     >로그아웃</button
                 >
             </div>
@@ -335,73 +339,25 @@
         min-height: 100vh;
         background: #f7fafc;
     }
-    .header {
-        background: linear-gradient(135deg, #1a365d 0%, #2d3748 100%);
-        color: #fff;
-        padding: 16px 20px;
-    }
-    .header-inner {
-        max-width: 700px;
-        margin: 0 auto;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-    }
-    .header-content {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-    .brand-link {
-        display: flex;
-        align-items: center;
-        text-decoration: none;
-        gap: 12px;
-        transition: opacity 0.2s;
-    }
-    .brand-link:hover {
-        opacity: 0.8;
-    }
-    .brand-logo {
-        height: 70px;
-        width: auto;
-        display: block;
-    }
-    .brand-title {
-        margin: 0;
-        font-size: 20px;
-        font-weight: 800;
-        color: #fff;
-        letter-spacing: -0.5px;
+    .header { }
+    .header-inner { }
+    .header-content { }
+    .brand-link { }
+    .brand-logo { }
+    .brand-title { }
+    .nav-links { }
+    .nav-link { }
+    .user-greeting {
         white-space: nowrap;
     }
-    .nav-links {
-        display: flex;
-        gap: 8px;
-        align-items: center;
+    .user-icon {
+        font-size: 16px;
     }
-    .nav-link {
-        padding: 8px 18px;
-        border-radius: 8px;
-        color: #fff;
-        font-size: 13px;
+    .user-name {
+        color: #90cdf4;
         font-weight: 700;
-        white-space: nowrap;
-        transition: all 0.15s;
-        text-decoration: none;
     }
-    .logout-btn {
-        background: rgba(255, 255, 255, 0.1);
-        border: 1.5px solid rgba(255, 255, 255, 0.3);
-        cursor: pointer;
-        font-family: inherit;
-    }
-    .logout-btn:hover {
-        background: rgba(229, 62, 62, 0.3);
-        border-color: rgba(229, 62, 62, 0.5);
-        transform: translateY(-1px);
-    }
+    .logout-btn { }
 
     .main {
         max-width: 700px;

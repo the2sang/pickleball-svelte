@@ -1,8 +1,10 @@
 <script>
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
+    import { page } from "$app/stores";
     import { auth } from "$lib/stores/auth.js";
     import logo from "$lib/assets/main_logo.png";
+    import { parseApiErrorResponse } from "$lib/utils/apiError.js";
 
     let courts = [];
     let selectedCourtId = null;
@@ -18,10 +20,16 @@
 
     let selectedDate = getTodayString(); // 오늘 날짜 디폴트
     let timeSlots = [];
+    let approvedRentalSlots = [];
     let loading = false;
     let saving = false;
     let error = "";
     let successMsg = "";
+
+    let rentalRequests = [];
+    let rentalLoading = false;
+    let rentalError = "";
+    let rentalActingId = null;
 
     // Generate 1-hour interval options from 06:00 to 24:00
     const timeOptions = [];
@@ -57,8 +65,12 @@
                 headers: { Authorization: `Bearer ${getToken()}` },
             });
             if (!res.ok) throw new Error("코트 목록을 불러올 수 없습니다.");
-            courts = await res.json();
-            if (courts.length > 0) {
+            const fetchedCourts = await res.json();
+            courts = [...fetchedCourts].sort((a, b) =>
+                (a.courtName || "").localeCompare(b.courtName || ""),
+            );
+
+            if (courts.length > 0 && !selectedCourtId) {
                 selectedCourtId = courts[0].id;
                 fetchSettings();
             }
@@ -67,34 +79,21 @@
         }
     }
 
-    function generateTimeSlots(gameTime) {
-        // gameTime format: "06:00 ~ 22:00"
-        if (!gameTime) return [];
+    function normalizeTime(t) {
+        if (!t) return "";
+        if (t === "00:00" || t === "00:00:00") return "24:00";
+        return t.length > 5 ? t.substring(0, 5) : t;
+    }
 
-        try {
-            const [startStr, endStr] = gameTime.split("~").map((s) => s.trim());
-            let startHour = parseInt(startStr.split(":")[0]);
-            let endHour = parseInt(endStr.split(":")[0]);
+    function toMinutes(t) {
+        if (!t) return NaN;
+        if (t === "24:00") return 1440;
+        const [h, m] = t.split(":").map(Number);
+        return h * 60 + m;
+    }
 
-            let slots = [];
-            for (let h = startHour; h < endHour; h += 2) {
-                let nextH = h + 2;
-                if (nextH > endHour) nextH = endHour;
-
-                let sTime = `${h.toString().padStart(2, "0")}:00`;
-                let eTime = `${nextH.toString().padStart(2, "0")}:00`;
-
-                slots.push({
-                    startTime: sTime,
-                    endTime: eTime,
-                    type: "OPEN_GAME", // Default
-                });
-            }
-            return slots;
-        } catch (e) {
-            console.error("Time parse error", e);
-            return [];
-        }
+    function overlaps(aStart, aEnd, bStart, bEnd) {
+        return aStart < bEnd && aEnd > bStart;
     }
 
     async function fetchSettings() {
@@ -104,11 +103,7 @@
         successMsg = "";
 
         try {
-            // 1. Get court details to generate base slots
-            const court = courts.find((c) => c.id === selectedCourtId);
-            let baseSlots = generateTimeSlots(court.gameTime);
-
-            // 2. Get saved settings
+            // 1. Get saved settings
             const res = await fetch(
                 `/api/v1/partner-manage/reservation/settings?courtId=${selectedCourtId}&date=${selectedDate}`,
                 {
@@ -120,27 +115,29 @@
                 const data = await res.json();
 
                 if (data.timeSlots && data.timeSlots.length > 0) {
-                    // Use saved settings
-                    timeSlots = data.timeSlots.map((s) => ({
-                        startTime:
-                            s.startTime.length > 5
-                                ? s.startTime.substring(0, 5)
-                                : s.startTime,
-                        endTime:
-                            s.endTime === "00:00" || s.endTime === "00:00:00"
-                                ? "24:00"
-                                : s.endTime.length > 5
-                                  ? s.endTime.substring(0, 5)
-                                  : s.endTime,
-                        type: s.type,
-                    }));
+                    approvedRentalSlots = data.timeSlots
+                        .filter((s) => s.type === "RENTAL")
+                        .map((s) => ({
+                            startTime: normalizeTime(s.startTime),
+                            endTime: normalizeTime(s.endTime),
+                        }));
+
+                    timeSlots = data.timeSlots
+                        .filter((s) => s.type === "OPEN_GAME")
+                        .map((s) => ({
+                            startTime: normalizeTime(s.startTime),
+                            endTime: normalizeTime(s.endTime),
+                        }));
                 } else {
-                    // Use default generation
-                    timeSlots = baseSlots;
+                    approvedRentalSlots = [];
+                    timeSlots = [];
                 }
             } else {
-                timeSlots = baseSlots;
+                approvedRentalSlots = [];
+                timeSlots = [];
             }
+
+            await fetchRentalRequests();
         } catch (err) {
             error = err.message;
         } finally {
@@ -148,13 +145,114 @@
         }
     }
 
+    async function fetchRentalRequests() {
+        if (!selectedCourtId || !selectedDate) return;
+        rentalLoading = true;
+        rentalError = "";
+
+        try {
+            const res = await fetch(
+                `/api/v1/partner-manage/rentals/requests?courtId=${selectedCourtId}&date=${selectedDate}&status=ALL`,
+                {
+                    headers: { Authorization: `Bearer ${getToken()}` },
+                },
+            );
+
+            if (!res.ok) {
+                const apiErr = await parseApiErrorResponse(res);
+                throw new Error(apiErr.message);
+            }
+
+            rentalRequests = await res.json();
+        } catch (e) {
+            rentalError = e.message;
+            rentalRequests = [];
+        } finally {
+            rentalLoading = false;
+        }
+    }
+
+    function isPendingRentalRequest(request) {
+        return (request?.approvalStatus || "").toUpperCase() === "PENDING";
+    }
+
+    function isApprovedRentalRequest(request) {
+        return (request?.approvalStatus || "").toUpperCase() === "APPROVED";
+    }
+
+    function rentalStatusLabel(status) {
+        if (!status) return "-";
+        const normalized = status.toUpperCase();
+
+        if (normalized === "PENDING") return "대기중";
+        if (normalized === "APPROVED") return "승인됨";
+        if (normalized === "REJECTED") return "거절됨";
+
+        return status;
+    }
+
+    function rentalStatusClass(request) {
+        if (isPendingRentalRequest(request)) return "rental-status-pending";
+        if (isApprovedRentalRequest(request)) return "rental-status-approved";
+        return "rental-status-rejected";
+    }
+
+    async function approveRequest(id) {
+        rentalActingId = id;
+        rentalError = "";
+        try {
+            const res = await fetch(
+                `/api/v1/partner-manage/rentals/requests/${id}/approve`,
+                {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${getToken()}` },
+                },
+            );
+
+            if (!res.ok) {
+                const apiErr = await parseApiErrorResponse(res);
+                throw new Error(apiErr.message);
+            }
+
+            await fetchSettings();
+        } catch (e) {
+            rentalError = e.message;
+        } finally {
+            rentalActingId = null;
+        }
+    }
+
+    async function rejectRequest(id) {
+        rentalActingId = id;
+        rentalError = "";
+        try {
+            const res = await fetch(
+                `/api/v1/partner-manage/rentals/requests/${id}/reject`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${getToken()}`,
+                    },
+                    body: JSON.stringify({ reason: "" }),
+                },
+            );
+
+            if (!res.ok) {
+                const apiErr = await parseApiErrorResponse(res);
+                throw new Error(apiErr.message);
+            }
+
+            await fetchSettings();
+        } catch (e) {
+            rentalError = e.message;
+        } finally {
+            rentalActingId = null;
+        }
+    }
+
     function hasOverlap(slots) {
         if (slots.length < 2) return null;
-
-        const toMinutes = (t) => {
-            const [h, m] = t.split(":").map(Number);
-            return h === 0 && t === "24:00" ? 1440 : h * 60 + m;
-        };
 
         const sorted = [...slots]
             .map((s, i) => ({ ...s, idx: i }))
@@ -179,6 +277,30 @@
             return;
         }
 
+        let filteredSlots = timeSlots;
+        if (approvedRentalSlots.length > 0 && timeSlots.length > 0) {
+            const beforeCount = timeSlots.length;
+            filteredSlots = timeSlots.filter((s) => {
+                const sStart = toMinutes(s.startTime);
+                const sEnd = toMinutes(s.endTime);
+                for (const r of approvedRentalSlots) {
+                    const rStart = toMinutes(r.startTime);
+                    const rEnd = toMinutes(r.endTime);
+                    if (overlaps(sStart, sEnd, rStart, rEnd)) {
+                        return false;
+                    }
+                }
+                return true;
+            });
+
+            const removed = beforeCount - filteredSlots.length;
+            if (removed > 0) {
+                alert(
+                    `승인된 대관 시간대와 겹치는 오픈게임 시간대 ${removed}개를 제외하고 저장합니다.`,
+                );
+            }
+        }
+
         saving = true;
         error = "";
         successMsg = "";
@@ -187,10 +309,10 @@
             const payload = {
                 courtId: selectedCourtId,
                 date: selectedDate,
-                timeSlots: timeSlots.map((s) => ({
+                timeSlots: filteredSlots.map((s) => ({
                     startTime: s.startTime === "24:00" ? "00:00" : s.startTime,
                     endTime: s.endTime === "24:00" ? "00:00" : s.endTime,
-                    type: s.type,
+                    type: "OPEN_GAME",
                 })),
             };
 
@@ -345,7 +467,15 @@
         timeSlots = [...timeSlots];
     }
 
-    function handleAddSlot() {
+function handleAddSlot() {
+        const hasPendingRental = rentalRequests.some(isPendingRentalRequest);
+        if (hasPendingRental) {
+            alert(
+                "대관 신청에 대한 승인처리를 먼저 진행하셔야 시간대 추가를 할 수 있습니다",
+            );
+            return;
+        }
+
         let newStartTime = "06:00";
         if (timeSlots.length > 0) {
             const lastSlot = timeSlots[timeSlots.length - 1];
@@ -360,9 +490,13 @@
             {
                 startTime: newStartTime,
                 endTime: newEndTime,
-                type: "OPEN_GAME",
             },
         ];
+    }
+
+    function handleLogout() {
+        auth.logout();
+        goto("/login");
     }
 </script>
 
@@ -370,29 +504,53 @@
     <title>코트별 예약설정 - LESGO PiCKLE</title>
 </svelte:head>
 
-<div class="page">
-    <header class="header">
-        <div class="header-inner">
+<div class="pb-shell page">
+    <header class="pb-header header">
+        <div class="pb-header-inner header-inner">
             <div class="header-content">
-                <a href="/partner" class="brand-link">
-                    <img src={logo} alt="LESGO PiCKLE" class="brand-logo" />
-                    <h3 class="brand-title">코트별 예약설정</h3>
+                <a href="/partner" class="pb-brand-link brand-link">
+                    <img src={logo} alt="LESGO PiCKLE" class="pb-brand-logo brand-logo" />
+                    <h3 class="pb-brand-title brand-title">코트별 예약설정</h3>
                 </a>
+            </div>
+            <div class="pb-nav nav-links">
+                <span class="pb-user-pill user-greeting">
+                    <span class="user-icon">🏸</span>
+                    <span class="user-name">{$auth?.name || $auth?.username || '사용자'}</span>님
+                </span>
+                <a
+                    href="/partner/court"
+                    class={`pb-btn-ghost nav-link court-link ${$page.url.pathname === '/partner/court' || $page.url.pathname.startsWith('/partner/court/') ? 'is-active' : ''}`}
+                    >코트관리</a
+                >
+                <a
+                    href="/partner/courtReservation"
+                    class={`pb-btn-ghost nav-link court-link ${$page.url.pathname === '/partner/courtReservation' ? 'is-active' : ''}`}
+                    >예약설정</a
+                >
+                <a
+                    href="/partner/profile"
+                    class={`pb-btn-ghost nav-link profile-link ${$page.url.pathname === '/partner/profile' ? 'is-active' : ''}`}
+                    >사업장정보</a
+                >
+                <button class="pb-btn-ghost nav-link logout-btn" on:click={handleLogout}
+                    >로그아웃</button
+                >
             </div>
         </div>
     </header>
 
-    <main class="main">
-        <button class="back-btn" on:click={() => goto("/partner")}
+    <main class="pb-container main">
+        <button class="pb-btn-ghost back-btn" on:click={() => goto("/partner")}
             >← 메인으로</button
         >
 
-        <div class="controls-card">
+        <div class="pb-card controls-card">
             <div class="control-group">
-                <label for="courtSelect" class="label">코트 선택</label>
+                <label for="courtSelect" class="pb-label label">코트 선택</label>
                 <select
                     id="courtSelect"
-                    class="select-input"
+                    class="pb-input select-input"
                     bind:value={selectedCourtId}
                     on:change={handleCourtChange}
                 >
@@ -402,11 +560,11 @@
                 </select>
             </div>
             <div class="control-group">
-                <label for="dateSelect" class="label">날짜 선택</label>
+                <label for="dateSelect" class="pb-label label">날짜 선택</label>
                 <input
                     id="dateSelect"
                     type="date"
-                    class="date-input"
+                    class="pb-input date-input"
                     bind:value={selectedDate}
                     on:change={handleDateChange}
                 />
@@ -416,7 +574,7 @@
         {#if loading}
             <div class="loading">불러오는 중...</div>
         {:else}
-            <div class="slots-container">
+            <div class="pb-card slots-container">
                 {#if successMsg}
                     <div class="success-msg">✅ {successMsg}</div>
                 {/if}
@@ -434,14 +592,14 @@
 
                 {#if timeSlots.length === 0}
                     <div class="empty-msg">
-                        운영 시간이 설정되지 않았거나 잘못되었습니다.
+                        아직 등록된 오픈게임 시간대가 없습니다. 아래 "시간대 추가" 버튼으로 등록해주세요.
                     </div>
                 {:else}
                     {#each timeSlots as slot, i}
                         <div class="slot-row">
                             <div class="time-label">
                                 <select
-                                    class="time-input"
+                                    class="pb-input time-input"
                                     value={slot.startTime}
                                     on:change={(e) =>
                                         handleStartTimeChange(i, e)}
@@ -452,7 +610,7 @@
                                 </select>
                                 <span class="time-text"> ~ </span>
                                 <select
-                                    class="time-input"
+                                    class="pb-input time-input"
                                     value={slot.endTime}
                                     on:change={(e) => handleEndTimeChange(i, e)}
                                 >
@@ -461,7 +619,7 @@
                                     {/each}
                                 </select>
                                 <select
-                                    class="duration-select"
+                                    class="pb-input duration-select"
                                     on:change={(e) =>
                                         handleDurationChange(i, e)}
                                 >
@@ -483,58 +641,81 @@
                                     )}시간
                                 </span>
                                 <button
-                                    class="delete-btn"
+                                    class="pb-btn-ghost delete-btn"
                                     on:click={() => handleDeleteSlot(i)}
                                 >
                                     삭제
                                 </button>
                             </div>
-                            <div class="type-selector">
-                                <label
-                                    class="radio-label {slot.type ===
-                                    'OPEN_GAME'
-                                        ? 'active-open'
-                                        : ''}"
-                                >
-                                    <input
-                                        type="radio"
-                                        value="OPEN_GAME"
-                                        bind:group={slot.type}
-                                    />
-                                    오픈게임
-                                </label>
-                                <label
-                                    class="radio-label {slot.type === 'RENTAL'
-                                        ? 'active-rental'
-                                        : ''}"
-                                >
-                                    <input
-                                        type="radio"
-                                        value="RENTAL"
-                                        bind:group={slot.type}
-                                    />
-                                    전체 대관
-                                </label>
-                            </div>
+                            <div class="type-badge">오픈게임</div>
                         </div>
                     {/each}
+                {/if}
 
                     <div class="button-group">
                         <button
-                            class="add-btn"
+                            class="pb-btn-ghost add-btn"
                             on:click={handleAddSlot}
                             disabled={loading || saving}
                         >
                             시간대 추가
                         </button>
                         <button
-                            class="save-btn"
+                            class="pb-btn-primary save-btn"
                             on:click={handleSave}
                             disabled={loading || saving}
                         >
                             {saving ? "저장 중..." : "설정 저장"}
                         </button>
                     </div>
+            </div>
+
+            <div class="pb-card rental-container">
+                <div class="rental-header">
+                    <span>대관 요청</span>
+                    {#if rentalLoading}
+                        <span class="rental-loading">불러오는 중...</span>
+                    {/if}
+                </div>
+
+                {#if rentalError}
+                    <div class="error-msg">⚠️ {rentalError}</div>
+                {/if}
+
+                {#if !rentalLoading && rentalRequests.length === 0}
+                    <div class="empty-msg">대관 신청이 없습니다.</div>
+                {:else}
+                    {#each rentalRequests as r (r.id)}
+                        <div class="rental-row">
+                            <div class="rental-info">
+                                <div class="rental-title">
+                                    {r.timeSlot} · {r.username}{#if r.name}({r.name}){/if}
+                                </div>
+                                <div class="rental-meta">신청일: {r.gameDate}</div>
+                            </div>
+                            <div class="rental-actions">
+                                <span class={`rental-status ${rentalStatusClass(r)}`}>
+                                    {rentalStatusLabel(r.approvalStatus)}
+                                </span>
+                                {#if isPendingRentalRequest(r)}
+                                    <button
+                                        class="rental-btn approve"
+                                        on:click={() => approveRequest(r.id)}
+                                        disabled={rentalActingId === r.id}
+                                    >
+                                        승인
+                                    </button>
+                                    <button
+                                        class="rental-btn reject"
+                                        on:click={() => rejectRequest(r.id)}
+                                        disabled={rentalActingId === r.id}
+                                    >
+                                        거절
+                                    </button>
+                                {/if}
+                            </div>
+                        </div>
+                    {/each}
                 {/if}
             </div>
         {/if}
@@ -546,30 +727,59 @@
         min-height: 100vh;
         background: #f7fafc;
     }
-    .header {
-        background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
-        color: #fff;
-        padding: 16px 20px;
+    .header { }
+    .header-inner { }
+    .brand-link { }
+    .brand-logo { }
+    .brand-title { }
+    .user-greeting {
+        white-space: nowrap;
     }
-    .header-inner {
-        max-width: 800px;
-        margin: 0 auto;
+    .user-icon {
+        font-size: 16px;
     }
-    .brand-link {
-        display: flex;
-        align-items: center;
-        text-decoration: none;
-        gap: 12px;
-    }
-    .brand-logo {
-        height: 50px;
-        width: auto;
-    }
-    .brand-title {
-        margin: 0;
-        font-size: 18px;
+    .user-name {
+        color: #90cdf4;
         font-weight: 700;
-        color: #fff;
+    }
+    .nav-links {
+    }
+    .nav-link {
+        padding: 8px 14px;
+        border-radius: 8px;
+        color: #2d3748;
+        background: rgba(255, 255, 255, 0.16);
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 700;
+        white-space: nowrap;
+        transition: all 0.15s;
+        border: 1px solid transparent;
+    }
+    .nav-link:hover {
+        background: rgba(255, 255, 255, 0.3);
+        color: #1a365d;
+        border-color: rgba(255, 255, 255, 0.45);
+        transform: translateY(-1px);
+    }
+    .nav-link.is-active {
+        color: #1a365d;
+        background: rgba(255, 255, 255, 0.34);
+        border-color: rgba(255, 255, 255, 0.6);
+        box-shadow: 0 8px 18px rgba(26, 54, 93, 0.14);
+    }
+    .court-link {
+        color: #1a365d;
+    }
+    .profile-link {
+        background: rgba(72, 187, 120, 0.2);
+        border: 1.5px solid rgba(72, 187, 120, 0.4);
+    }
+    .profile-link:hover {
+        background: rgba(72, 187, 120, 0.35);
+        border-color: rgba(72, 187, 120, 0.6);
+    }
+    .logout-btn {
     }
 
     .main {
@@ -578,19 +788,15 @@
         padding: 24px 16px;
     }
     .back-btn {
-        background: none;
-        border: none;
         color: #4a5568;
         font-weight: 600;
         cursor: pointer;
         margin-bottom: 20px;
+        padding: 10px 16px;
     }
 
     .controls-card {
-        background: white;
         padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         display: flex;
         gap: 20px;
         margin-bottom: 20px;
@@ -609,17 +815,109 @@
     }
     .select-input,
     .date-input {
-        padding: 10px;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
         outline: none;
     }
 
     .slots-container {
-        background: white;
         padding: 24px;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+    }
+
+    .rental-container {
+        padding: 20px 24px;
+    }
+    .rental-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-weight: 800;
+        color: #1a365d;
+        margin-bottom: 12px;
+    }
+    .rental-loading {
+        font-size: 12px;
+        color: #718096;
+        font-weight: 700;
+    }
+    .rental-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        background: #f7fafc;
+    }
+    .rental-row:last-child {
+        margin-bottom: 0;
+    }
+    .rental-title {
+        font-weight: 800;
+        color: #2d3748;
+        font-size: 14px;
+    }
+    .rental-meta {
+        font-size: 12px;
+        color: #718096;
+        margin-top: 4px;
+        font-weight: 700;
+    }
+    .rental-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+    .rental-status {
+        padding: 7px 10px;
+        border-radius: 14px;
+        font-size: 12px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .rental-status-pending {
+        background: #fff5f5;
+        color: #c53030;
+        border: 1px solid #fca5a5;
+    }
+
+    .rental-status-approved {
+        background: #f0fff4;
+        color: #22543d;
+        border: 1px solid #9ae6b4;
+    }
+
+    .rental-status-rejected {
+        background: #fff5f5;
+        color: #9b2c2c;
+        border: 1px solid #feb2b2;
+    }
+
+    .rental-btn {
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: none;
+        cursor: pointer;
+        font-weight: 800;
+        font-size: 13px;
+        font-family: inherit;
+        white-space: nowrap;
+    }
+    .rental-btn.approve {
+        background: linear-gradient(135deg, #2e7d32, #43a047);
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(46, 125, 50, 0.22);
+    }
+    .rental-btn.reject {
+        background: #fff;
+        border: 1.5px solid #e2e8f0;
+        color: #c53030;
+    }
+    .rental-btn:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
     }
     .slots-header {
         display: flex;
@@ -646,22 +944,18 @@
         gap: 8px;
     }
     .time-input {
-        padding: 4px 8px;
-        border: 1px solid #e2e8f0;
-        border-radius: 6px;
+        width: fit-content;
+        min-width: 72px;
         font-family: inherit;
         font-size: 15px;
         color: #2d3748;
         outline: none;
-    }
-    .time-input:focus {
-        border-color: #3182ce;
-        box-shadow: 0 0 0 1px #3182ce;
+        padding-top: 8px;
+        padding-bottom: 8px;
     }
     .duration-select {
-        padding: 4px 8px;
-        border: 1px solid #e2e8f0;
-        border-radius: 6px;
+        width: fit-content;
+        min-width: 84px;
         font-family: inherit;
         font-size: 14px;
         color: #4a5568;
@@ -680,51 +974,26 @@
         font-weight: 600;
     }
     .delete-btn {
+        width: fit-content;
+        padding: 8px 12px;
         margin-left: 8px;
-        padding: 4px 10px;
-        background: #fff5f5;
-        border: 1px solid #feb2b2;
         color: #c53030;
-        border-radius: 6px;
         font-size: 13px;
         cursor: pointer;
         transition: all 0.2s;
     }
     .delete-btn:hover {
-        background: #feb2b2;
         color: #742a2a;
     }
-    .type-selector {
-        display: flex;
-        gap: 8px;
-    }
-
-    .radio-label {
-        padding: 8px 16px;
-        border: 1px solid #e2e8f0;
+    .type-badge {
+        padding: 8px 14px;
+        border: 1px solid #9ae6b4;
         border-radius: 20px;
-        cursor: pointer;
         font-size: 14px;
-        color: #718096;
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-    .radio-label input {
-        display: none;
-    }
-    .active-open {
-        background: #c6f6d5;
-        border-color: #9ae6b4;
+        font-weight: 800;
         color: #22543d;
-        font-weight: 700;
-    }
-    .active-rental {
-        background: #bee3f8;
-        border-color: #90cdf4;
-        color: #2c5282;
-        font-weight: 700;
+        background: #c6f6d5;
+        white-space: nowrap;
     }
 
     .button-group {
@@ -732,32 +1001,6 @@
         display: flex;
         gap: 10px;
         justify-content: flex-end;
-    }
-    .button-group button {
-        padding: 12px 24px;
-        border: none;
-        border-radius: 8px;
-        font-weight: 700;
-        cursor: pointer;
-        font-size: 16px;
-        color: white;
-        transition: background 0.2s;
-    }
-    .add-btn {
-        background: #4a5568;
-    }
-    .add-btn:hover {
-        background: #2d3748;
-    }
-    .save-btn {
-        background: #3182ce;
-    }
-    .save-btn:hover {
-        background: #2b6cb0;
-    }
-    .button-group button:disabled {
-        opacity: 0.7;
-        cursor: not-allowed;
     }
 
     .loading,

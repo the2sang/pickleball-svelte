@@ -99,16 +99,16 @@
 </svelte:head>
 
 <div class="page">
-    <header class="header">
-        <div class="header-inner">
-            <div class="header-content">
-                <a href="/admin" class="brand-link">
-                    <img src={logo} alt="LESGO PiCKLE" class="brand-logo" />
-                    <h3 class="brand-title">시스템 관리자</h3>
-                </a>
-            </div>
+<header class="pb-header header">
+    <div class="pb-header-inner header-inner">
+        <div class="header-content">
+            <a href="/admin" class="pb-brand-link brand-link">
+                <img src={logo} alt="LESGO PiCKLE" class="pb-brand-logo brand-logo" />
+                <h3 class="pb-brand-title brand-title">시스템 관리자</h3>
+            </a>
         </div>
-    </header>
+    </div>
+</header>
 
     <main class="main">
         <div class="form-container">
@@ -167,43 +167,12 @@
         min-height: 100vh;
         background: #f7fafc;
     }
-    .header {
-        background: linear-gradient(135deg, #1a365d 0%, #2d3748 100%);
-        color: #fff;
-        padding: 16px 20px;
-    }
-    .header-inner {
-        max-width: 600px;
-        margin: 0 auto;
-    }
-    .header-content {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-    .brand-link {
-        display: flex;
-        align-items: center;
-        text-decoration: none;
-        gap: 12px;
-        transition: opacity 0.2s;
-    }
-    .brand-link:hover {
-        opacity: 0.8;
-    }
-    .brand-logo {
-        height: 70px;
-        width: auto;
-        display: block;
-    }
-    .brand-title {
-        margin: 0;
-        font-size: 20px;
-        font-weight: 800;
-        color: #fff;
-        letter-spacing: -0.5px;
-        white-space: nowrap;
-    }
+    .header { }
+    .header-inner { }
+    .header-content { }
+    .brand-link { }
+    .brand-logo { }
+    .brand-title { }
     .main {
         max-width: 600px;
         margin: 0 auto;

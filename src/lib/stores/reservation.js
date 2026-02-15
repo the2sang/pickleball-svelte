@@ -11,6 +11,7 @@ export const modalOpen = writable(false);
 export const modalData = writable(null);
 export const confirmOpen = writable(false);
 export const successOpen = writable(false);
+export const successMessage = writable('');
 export const refreshTrigger = writable(0);
 
 export const courts = writable([]); // List of courts for selected partner

@@ -1,4 +1,5 @@
 <script>
+  import '../app.css';
   let { children } = $props();
 </script>
 
@@ -10,22 +11,3 @@
 </svelte:head>
 
 {@render children()}
-
-<style>
-  :global(*) {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-  :global(body) {
-    font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
-    -webkit-font-smoothing: antialiased;
-  }
-  :global(::-webkit-scrollbar) {
-    width: 6px;
-  }
-  :global(::-webkit-scrollbar-thumb) {
-    background: #cbd5e0;
-    border-radius: 3px;
-  }
-</style>
