@@ -1,6 +1,6 @@
 <script>
   let {
-    title = "피클볼 게임 예약하러 가자.. Let's GO!",
+    title = "라켓들고 LesGO!",
     brandHref = "/",
     hasNav = true,
     navClass = "pb-nav nav-links",

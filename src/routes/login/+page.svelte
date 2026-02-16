@@ -152,7 +152,7 @@
 <div class="pb-shell page">
     <!-- Header -->
     <SiteHeader
-        title="피클볼 게임 예약하러 가자.. Let's GO! - 로그인"
+        title="라켓들고 LesGO! - 로그인"
         hasNav={false}
         brandHref="/"
     />

@@ -415,7 +415,7 @@
 <div class="page">
     <!-- Header -->
    <SiteHeader
-     title="피클볼 게임 예약하러 가자.. Let's GO! - 회원가입"
+      title="라켓들고 LesGO! - 회원가입"
      hasNav={false}
      brandHref="/"
    />
