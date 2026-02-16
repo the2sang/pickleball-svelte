@@ -48,7 +48,13 @@
 
         const data = await res.json();
         const list = data?.data ?? data?.content ?? [];
-        partners = Array.isArray(list) ? list : [];
+        const source = Array.isArray(list) ? list : [];
+
+        partners = [...source].sort((a, b) => {
+          const aName = String(a?.businessPartner ?? a?.partnerName ?? "").trim();
+          const bName = String(b?.businessPartner ?? b?.partnerName ?? "").trim();
+          return aName.localeCompare(bName, "ko-KR", { sensitivity: "base" });
+        });
         totalCount = typeof data?.total === "number" ? data.total : partners.length;
       } catch (e) {
         console.error("사업장 조회 실패:", e);
