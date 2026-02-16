@@ -1,7 +1,7 @@
 <script>
     import { goto } from "$app/navigation";
     import { auth } from "$lib/stores/auth.js";
-    import logo from "$lib/assets/main_logo.png";
+    import logo from "$lib/assets/main_logo2.png";
 
     const quickAccounts = [
         { label: "파트너 - admin1", username: "admin1", role: "PARTNER" },

@@ -1,7 +1,7 @@
 <script>
     import { goto } from "$app/navigation";
     import { auth } from "$lib/stores/auth.js";
-    import logo from "$lib/assets/main_logo.png";
+    import logo from "$lib/assets/main_logo2.png";
     import Modal from "$lib/components/Modal.svelte";
     import { TERMS_CONTENT } from "$lib/data/terms.js";
 

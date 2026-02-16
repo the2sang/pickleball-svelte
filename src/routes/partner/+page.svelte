@@ -3,7 +3,7 @@
     import { goto } from "$app/navigation";
     import { page } from "$app/stores";
     import { auth } from "$lib/stores/auth.js";
-    import logo from "$lib/assets/main_logo.png";
+    import logo from "$lib/assets/main_logo2.png";
 
     onMount(() => {
         auth.refresh();
