@@ -111,9 +111,14 @@
         goto("/");
     }
 
-    function handleLogout() {
+    function handleLogout(event) {
+        if (event?.preventDefault) {
+            event.preventDefault();
+        }
         auth.logout();
-        goto("/login");
+        if (typeof window !== "undefined") {
+            window.location.replace("/login");
+        }
     }
 
     const gameLevels = ["입문", "초급", "중급", "중상급", "상급"];
@@ -129,7 +134,11 @@
             <span class="user-icon">👤</span>
             <span class="user-name">{$auth.name || $auth.username}</span>님
         </span>
-        <button class="pb-btn-ghost nav-link logout-btn" on:click={handleLogout}>
+        <button
+          type="button"
+          class="pb-btn-ghost nav-link logout-btn"
+          on:click|preventDefault={handleLogout}
+        >
           로그아웃
         </button>
     </SiteHeader>
@@ -332,6 +341,9 @@
     .nav-link { }
     .user-greeting {
         white-space: nowrap;
+    }
+    .logout-btn {
+        cursor: pointer;
     }
     .user-icon {
         font-size: 16px;

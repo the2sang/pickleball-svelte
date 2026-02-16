@@ -69,7 +69,7 @@
     }
   }
 
-  function openApplicants(timeSlot, info) {
+  async function openApplicants(timeSlot, info) {
     if (!info || !selectedCourt) return;
 
     if (!$auth) {
@@ -83,10 +83,31 @@
       return;
     }
 
+    let nextInfo = info;
+
+    try {
+      const res = await fetch(
+        `/api/v1/courts/${selectedCourt.id}/slots/${encodeURIComponent(timeSlot)}/players?date=${$selectedDate}`
+      );
+      if (res.ok) {
+        const players = await res.json();
+        const reservedCount = Array.isArray(players) ? players.length : info.reservedCount ?? 0;
+        nextInfo = {
+          ...info,
+          players,
+          reservedCount,
+        };
+      } else {
+        console.error("Failed to fetch players:", selectedCourt.id, timeSlot, res.status);
+      }
+    } catch (e) {
+      console.error("Failed to fetch players for slot:", e);
+    }
+
     modalData.set({
       court: selectedCourt,
       timeSlot,
-      reservation: { ...info, date: $selectedDate },
+      reservation: { ...nextInfo, date: $selectedDate },
       shouldAutoClose: true,
     });
     modalOpen.set(true);
@@ -292,7 +313,14 @@
                       type="button"
                       on:click={() => openApplicants(slotInfo.timeSlot, slotInfo)}
                     >
-                      <span class="people-icon" aria-hidden="true">👤</span>
+                      <span
+                        class="people-icon"
+                        class:people-icon--active={counts.total > 0}
+                        class:people-icon--empty={counts.total === 0}
+                        aria-hidden="true"
+                      >
+                        👤
+                      </span>
                     </button>
                   </div>
               {:else}
@@ -315,7 +343,14 @@
                     disabled={slotInfo.status === "CLOSED" || isPast}
                     on:click={() => openApplicants(slotInfo.timeSlot, slotInfo)}
                   >
-                    <span class="people-icon" aria-hidden="true">👤</span>
+                    <span
+                      class="people-icon"
+                      class:people-icon--active={counts.total > 0}
+                      class:people-icon--empty={counts.total === 0}
+                      aria-hidden="true"
+                    >
+                      👤
+                    </span>
                   </button>
                 </div>
               {/if}
@@ -604,6 +639,7 @@
   .player-view-btn {
     margin-left: auto;
     padding: 4px;
+    padding: 0;
     border-radius: 999px;
     min-width: auto;
     width: 26px;
@@ -612,11 +648,27 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    background: #38bdf8;
+    border: 1px solid #38bdf8;
+    color: #fff;
+  }
+
+  .player-view-btn:disabled {
+    background: #9ca3af;
+    border-color: #9ca3af;
+    color: #f9fafb;
   }
 
   .people-icon {
     font-size: 14px;
     line-height: 1;
+    color: #f59e0b;
+  }
+  .people-icon--active {
+    color: #f59e0b;
+  }
+  .people-icon--empty {
+    color: #38bdf8;
   }
   .slot-count {
     font-weight: 700;

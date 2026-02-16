@@ -192,7 +192,7 @@
       {/if}
 
       <div class="actions">
-        <button class="pb-btn-ghost btn-secondary" onclick={() => modalOpen.set(false)}>닫기</button>
+        <button class="pb-btn-ghost btn-secondary btn-close" onclick={() => modalOpen.set(false)}>닫기</button>
         {#if isMyReserved}
           <button
             class="pb-btn-danger btn-cancel-reservation"
@@ -213,7 +213,7 @@
         {:else if isRentalRestricted}
           <button class="pb-btn-ghost btn-disabled" disabled>일반 예약 불가</button>
         {:else if canReserve}
-          <button class="pb-btn-primary btn-primary" onclick={handleReserve}>
+          <button class="pb-btn-primary btn-primary btn-reservation" onclick={handleReserve}>
             예약 신청하기
           </button>
         {:else if isWaitingFull}
@@ -358,9 +358,25 @@
   .actions { display: flex; gap: 10px; }
   .btn-secondary {
     flex: 1;
+    background: #d5d7dc;
+    border-color: #aeb2bb;
+    color: #374151;
+  }
+  .btn-secondary:hover {
+    background: #c9ccd4;
+    border-color: #9aa0aa;
   }
   .btn-primary {
     flex: 2;
+  }
+  .btn-reservation {
+    background: linear-gradient(135deg, #0b1f54 0%, #191970 100%);
+    border-color: #191970;
+    color: #fff;
+  }
+  .btn-reservation:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(25, 25, 112, 0.35);
   }
   .btn-cancel-reservation {
     flex: 2;
