@@ -551,13 +551,13 @@
   /* Slots List */
   .slots-list {
     display: grid;
-    gap: 10px;
+    gap: 6px;
   }
   .slot-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
+    padding: 10px 12px;
     border-radius: 10px;
     border: 2px solid;
     cursor: default;
@@ -577,17 +577,17 @@
   .slot-left {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 6px;
   }
   .slot-time {
     font-weight: 700;
-    font-size: 16px;
+    font-size: 13px;
     color: #2d3748;
   }
   .slot-type {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
-    padding: 3px 10px;
+    padding: 2px 8px;
     border-radius: 12px;
     background: #e3f2fd;
     color: #1565c0;
@@ -599,15 +599,15 @@
   .slot-info {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
   }
   .player-view-btn {
     margin-left: auto;
-    padding: 7px;
+    padding: 4px;
     border-radius: 999px;
     min-width: auto;
-    width: 34px;
-    height: 34px;
+    width: 26px;
+    height: 26px;
     line-height: 1;
     display: inline-flex;
     align-items: center;
@@ -615,17 +615,17 @@
   }
 
   .people-icon {
-    font-size: 18px;
+    font-size: 14px;
     line-height: 1;
   }
   .slot-count {
     font-weight: 700;
-    font-size: 18px;
+    font-size: 14px;
   }
   .slot-status-link {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
-    padding: 4px 12px;
+    padding: 2px 8px;
     border: none;
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.6);
@@ -645,10 +645,10 @@
     border: 1px solid #fcd9b6;
   }
   .rental-notice {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     color: #e65100;
-    padding: 4px 12px;
+    padding: 2px 8px;
     border-radius: 12px;
     background: rgba(255, 243, 224, 0.6);
   }

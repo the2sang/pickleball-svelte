@@ -1,5 +1,6 @@
 <script>
   import Modal from "$lib/components/Modal.svelte";
+  import stadiumImage from "$lib/assets/pickleball-stadium.svg";
   import { auth } from "$lib/stores/auth.js";
   import { refreshTrigger, successOpen, successMessage } from "$lib/stores/reservation.js";
   import { parseApiErrorResponse } from "$lib/utils/apiError.js";
@@ -195,7 +196,7 @@
 <Modal open={open} onclose={onclose}>
   {#snippet children()}
     <div class="body">
-      <div class="icon">🏟️</div>
+      <img class="icon" src={stadiumImage} alt="피클볼 경기장" />
       <h3 class="title">대관 신청</h3>
 
       <div class="form">
@@ -260,7 +261,7 @@
 
 <style>
   .body { text-align: center; }
-  .icon { font-size: 40px; margin-bottom: 10px; }
+  .icon { width: 40px; height: 40px; object-fit: contain; margin-bottom: 10px; }
   .title { margin: 0 0 12px; font-size: 18px; font-weight: 800; color: #1a365d; }
 
   .form {
