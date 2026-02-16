@@ -9,7 +9,7 @@
   import { auth } from "$lib/stores/auth.js";
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
-  import logo from "$lib/assets/main_logo.png";
+  import logo from "$lib/assets/main_logo2.png";
 
   onMount(() => {
     auth.refresh();
