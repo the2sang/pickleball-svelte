@@ -107,7 +107,10 @@
             });
 
             if (!response.ok) {
-                if (response.status === 401) {
+                const errorData = await response.json().catch(() => null);
+                if (errorData && errorData.message) {
+                    loginError = errorData.message;
+                } else if (response.status === 401) {
                     loginError = "아이디 또는 비밀번호가 올바르지 않습니다.";
                 } else {
                     loginError =
