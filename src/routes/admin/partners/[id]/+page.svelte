@@ -3,7 +3,7 @@
     import { goto } from "$app/navigation";
     import { page } from "$app/stores";
     import { auth } from "$lib/stores/auth.js";
-    import logo from "$lib/assets/main_logo2.png";
+    import SiteHeader from "$lib/components/SiteHeader.svelte";
 
     let partner = null;
     let formData = {};
@@ -140,21 +140,11 @@
 </svelte:head>
 
 <div class="pb-shell page">
-    <header class="pb-header header">
-        <div class="pb-header-inner header-inner">
-            <div class="header-content">
-                <a href="/admin/partners" class="pb-brand-link brand-link">
-                    <img src={logo} alt="LESGO PiCKLE" class="pb-brand-logo brand-logo" />
-                    <h3 class="pb-brand-title brand-title">사업장관리</h3>
-                </a>
-            </div>
-            <div class="pb-nav nav-links">
-                <button class="pb-btn-ghost nav-link logout-btn" on:click={handleLogout}
-                    >로그아웃</button
-                >
-            </div>
-        </div>
-    </header>
+    <SiteHeader title="사업장관리" brandHref="/admin/partners" hasNav={true}>
+        <button class="pb-btn-ghost nav-link logout-btn" on:click={handleLogout}>
+          로그아웃
+        </button>
+    </SiteHeader>
 
     <main class="main">
         <button class="back-btn" on:click={goBack}>← 목록으로</button>
@@ -320,15 +310,7 @@
         min-height: 100vh;
         background: #f7fafc;
     }
-    .header { }
-    .header-inner { }
-    .header-content { }
-    .brand-link { }
-    .brand-logo { }
-    .brand-title { }
-    .nav-links { }
     .nav-link { }
-    .logout-btn { }
 
     .main {
         max-width: 700px;

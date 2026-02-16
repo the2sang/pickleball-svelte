@@ -2,7 +2,7 @@
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
     import { auth } from "$lib/stores/auth.js";
-    import logo from "$lib/assets/main_logo2.png";
+    import SiteHeader from "$lib/components/SiteHeader.svelte";
 
     let formData = {
         username: "",
@@ -99,16 +99,7 @@
 </svelte:head>
 
 <div class="page">
-<header class="pb-header header">
-    <div class="pb-header-inner header-inner">
-        <div class="header-content">
-            <a href="/admin" class="pb-brand-link brand-link">
-                <img src={logo} alt="LESGO PiCKLE" class="pb-brand-logo brand-logo" />
-                <h3 class="pb-brand-title brand-title">시스템 관리자</h3>
-            </a>
-        </div>
-    </div>
-</header>
+    <SiteHeader title="시스템 관리자" brandHref="/admin" hasNav={false} />
 
     <main class="main">
         <div class="form-container">
@@ -167,12 +158,6 @@
         min-height: 100vh;
         background: #f7fafc;
     }
-    .header { }
-    .header-inner { }
-    .header-content { }
-    .brand-link { }
-    .brand-logo { }
-    .brand-title { }
     .main {
         max-width: 600px;
         margin: 0 auto;

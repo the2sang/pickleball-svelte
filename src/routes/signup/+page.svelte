@@ -1,7 +1,7 @@
 <script>
     import { goto } from "$app/navigation";
     import { auth } from "$lib/stores/auth.js";
-    import logo from "$lib/assets/main_logo2.png";
+    import SiteHeader from "$lib/components/SiteHeader.svelte";
     import Modal from "$lib/components/Modal.svelte";
     import { TERMS_CONTENT } from "$lib/data/terms.js";
 
@@ -414,16 +414,11 @@
 
 <div class="page">
     <!-- Header -->
-  <header class="pb-header header">
-    <div class="pb-header-inner header-inner">
-      <div class="header-content">
-        <a href="/" class="pb-brand-link brand-link">
-          <img src={logo} alt="LESGO PiCKLE" class="pb-brand-logo brand-logo" />
-          <h3 class="pb-brand-title brand-title">피클볼 예약하러 가자..Let's GO! - 회원가입</h3>
-        </a>
-      </div>
-    </div>
-  </header>
+   <SiteHeader
+     title="피클볼 게임 예약하러 가자.. Let's GO! - 회원가입"
+     hasNav={false}
+     brandHref="/"
+   />
 
     <!-- Main Content -->
     <main class="main">
@@ -1141,19 +1136,13 @@
 </div>
 
 <style>
-    .page {
-        min-height: 100vh;
-        background: linear-gradient(135deg, #f0f4f8 0%, #e8edf5 100%);
-    }
-    .header { }
-    .header-inner { }
-    .header-content { }
-    .brand-link { }
-    .brand-logo { }
-    .brand-title { }
+  .page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f0f4f8 0%, #e8edf5 100%);
+  }
 
-    .main {
-        max-width: 640px;
+  .main {
+    max-width: 640px;
         margin: 0 auto;
         padding: 32px 16px;
     }

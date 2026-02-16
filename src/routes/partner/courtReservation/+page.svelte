@@ -3,7 +3,7 @@
     import { goto } from "$app/navigation";
     import { page } from "$app/stores";
     import { auth } from "$lib/stores/auth.js";
-    import logo from "$lib/assets/main_logo2.png";
+    import SiteHeader from "$lib/components/SiteHeader.svelte";
     import { parseApiErrorResponse } from "$lib/utils/apiError.js";
 
     let courts = [];
@@ -505,40 +505,28 @@ function handleAddSlot() {
 </svelte:head>
 
 <div class="pb-shell page">
-    <header class="pb-header header">
-        <div class="pb-header-inner header-inner">
-            <div class="header-content">
-                <a href="/partner" class="pb-brand-link brand-link">
-                    <img src={logo} alt="LESGO PiCKLE" class="pb-brand-logo brand-logo" />
-                    <h3 class="pb-brand-title brand-title">코트별 예약설정</h3>
-                </a>
-            </div>
-            <div class="pb-nav nav-links">
-                <span class="pb-user-pill user-greeting">
-                    <span class="user-icon">🏸</span>
-                    <span class="user-name">{$auth?.name || $auth?.username || '사용자'}</span>님
-                </span>
-                <a
-                    href="/partner/court"
-                    class={`pb-btn-ghost nav-link court-link ${$page.url.pathname === '/partner/court' || $page.url.pathname.startsWith('/partner/court/') ? 'is-active' : ''}`}
-                    >코트관리</a
-                >
-                <a
-                    href="/partner/courtReservation"
-                    class={`pb-btn-ghost nav-link court-link ${$page.url.pathname === '/partner/courtReservation' ? 'is-active' : ''}`}
-                    >예약설정</a
-                >
-                <a
-                    href="/partner/profile"
-                    class={`pb-btn-ghost nav-link profile-link ${$page.url.pathname === '/partner/profile' ? 'is-active' : ''}`}
-                    >사업장정보</a
-                >
-                <button class="pb-btn-ghost nav-link logout-btn" on:click={handleLogout}
-                    >로그아웃</button
-                >
-            </div>
-        </div>
-    </header>
+    <SiteHeader title="코트별 예약설정" brandHref="/partner" hasNav={!!$auth}>
+        <span class="pb-user-pill user-greeting">
+            <span class="user-icon">🏸</span>
+            <span class="user-name">{$auth?.name || $auth?.username || '사용자'}</span>님
+        </span>
+        <a
+            href="/partner/court"
+            class={`pb-btn-ghost nav-link court-link ${$page.url.pathname === '/partner/court' || $page.url.pathname.startsWith('/partner/court/') ? 'is-active' : ''}`}
+            >코트관리</a
+        >
+        <a
+            href="/partner/courtReservation"
+            class={`pb-btn-ghost nav-link court-link ${$page.url.pathname === '/partner/courtReservation' ? 'is-active' : ''}`}
+            >예약설정</a
+        >
+        <a
+            href="/partner/profile"
+            class={`pb-btn-ghost nav-link profile-link ${$page.url.pathname === '/partner/profile' ? 'is-active' : ''}`}
+            >사업장정보</a
+        >
+        <button class="pb-btn-ghost nav-link logout-btn" on:click={handleLogout}>로그아웃</button>
+    </SiteHeader>
 
     <main class="pb-container main">
         <button class="pb-btn-ghost back-btn" on:click={() => goto("/partner")}
@@ -727,11 +715,6 @@ function handleAddSlot() {
         min-height: 100vh;
         background: #f7fafc;
     }
-    .header { }
-    .header-inner { }
-    .brand-link { }
-    .brand-logo { }
-    .brand-title { }
     .user-greeting {
         white-space: nowrap;
     }
@@ -741,8 +724,6 @@ function handleAddSlot() {
     .user-name {
         color: #90cdf4;
         font-weight: 700;
-    }
-    .nav-links {
     }
     .nav-link {
         padding: 8px 14px;
@@ -779,9 +760,6 @@ function handleAddSlot() {
         background: rgba(72, 187, 120, 0.35);
         border-color: rgba(72, 187, 120, 0.6);
     }
-    .logout-btn {
-    }
-
     .main {
         max-width: 800px;
         margin: 0 auto;
