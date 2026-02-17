@@ -2,7 +2,7 @@
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
     import { auth } from "$lib/stores/auth.js";
-    import logo from "$lib/assets/main_logo.png";
+    import SiteHeader from "$lib/components/SiteHeader.svelte";
 
     let profile = null;
     let formData = {};
@@ -124,25 +124,15 @@
 </svelte:head>
 
 <div class="pb-shell page">
-    <header class="pb-header header">
-        <div class="pb-header-inner header-inner">
-            <div class="header-content">
-                <a href="/" class="pb-brand-link brand-link">
-                    <img src={logo} alt="LESGO PiCKLE" class="pb-brand-logo brand-logo" />
-                    <h3 class="pb-brand-title brand-title">회원정보 수정</h3>
-                </a>
-            </div>
-            <div class="pb-nav nav-links">
-                <span class="pb-user-pill user-greeting">
-                    <span class="user-icon">👤</span>
-                    <span class="user-name">{$auth.name || $auth.username}</span>님
-                </span>
-                <button class="pb-btn-ghost nav-link logout-btn" on:click={handleLogout}
-                    >로그아웃</button
-                >
-            </div>
-        </div>
-    </header>
+    <SiteHeader title="회원정보 수정" brandHref="/" hasNav={true}>
+        <span class="pb-user-pill user-greeting">
+            <span class="user-icon">👤</span>
+            <span class="user-name">{$auth.name || $auth.username}</span>님
+        </span>
+        <button class="pb-btn-ghost nav-link logout-btn" on:click={handleLogout}>
+          로그아웃
+        </button>
+    </SiteHeader>
 
     <main class="main">
         <button class="back-btn" on:click={goHome}>← 메인으로</button>
@@ -339,13 +329,6 @@
         min-height: 100vh;
         background: #f7fafc;
     }
-    .header { }
-    .header-inner { }
-    .header-content { }
-    .brand-link { }
-    .brand-logo { }
-    .brand-title { }
-    .nav-links { }
     .nav-link { }
     .user-greeting {
         white-space: nowrap;
@@ -357,8 +340,6 @@
         color: #90cdf4;
         font-weight: 700;
     }
-    .logout-btn { }
-
     .main {
         max-width: 700px;
         margin: 0 auto;

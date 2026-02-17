@@ -1,6 +1,37 @@
 {
   "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp@latest"
+      ]
+    },
+    "websearch": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-brave-search"
+      ],
+      "env": {
+        "BRAVE_API_KEY": "${BRAVE_API_KEY}"
+      }
+    },
+    "grep_app": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@247arjun/mcp-grep"
+      ]
+    },
     "playwright-test": {
+      "command": "npx",
+      "args": [
+        "playwright",
+        "run-test-mcp-server"
+      ]
+    },
+    "playwright_test": {
       "command": "npx",
       "args": [
         "playwright",

@@ -1,7 +1,7 @@
 <script>
     import { goto } from "$app/navigation";
     import { auth } from "$lib/stores/auth.js";
-    import logo from "$lib/assets/main_logo.png";
+    import SiteHeader from "$lib/components/SiteHeader.svelte";
 
     const quickAccounts = [
         { label: "파트너 - admin1", username: "admin1", role: "PARTNER" },
@@ -107,7 +107,10 @@
             });
 
             if (!response.ok) {
-                if (response.status === 401) {
+                const errorData = await response.json().catch(() => null);
+                if (errorData && errorData.message) {
+                    loginError = errorData.message;
+                } else if (response.status === 401) {
                     loginError = "아이디 또는 비밀번호가 올바르지 않습니다.";
                 } else {
                     loginError =
@@ -148,16 +151,11 @@
 
 <div class="pb-shell page">
     <!-- Header -->
-    <header class="pb-header header">
-        <div class="pb-header-inner header-inner">
-            <div class="header-content">
-                <a href="/" class="pb-brand-link brand-link">
-                    <img src={logo} alt="LESGO PiCKLE" class="pb-brand-logo brand-logo" />
-                    <h1 class="pb-brand-title brand-title">피클볼 게임 예약하러가자..Let's GO! - 로그인</h1>
-                </a>
-            </div>
-        </div>
-    </header>
+    <SiteHeader
+        title="라켓들고 LesGO! - 로그인"
+        hasNav={false}
+        brandHref="/"
+    />
 
     <!-- Main Content -->
     <main class="main">
@@ -263,21 +261,14 @@
 </div>
 
 <style>
-    .page {
-        min-height: 100vh;
-        background: linear-gradient(135deg, #f0f4f8 0%, #e8edf5 100%);
-    }
+  .page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f0f4f8 0%, #e8edf5 100%);
+  }
 
-    .header { }
-    .header-inner { }
-    .header-content { }
-    .brand-link { }
-    .brand-logo { }
-    .brand-title { }
-
-    .main {
-        max-width: 600px;
-        margin: 0 auto;
+  .main {
+    max-width: 600px;
+    margin: 0 auto;
         padding: 48px 16px;
     }
 

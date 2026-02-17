@@ -3,7 +3,7 @@
     import { goto } from "$app/navigation";
     import { page } from "$app/stores";
     import { auth } from "$lib/stores/auth.js";
-    import logo from "$lib/assets/main_logo.png";
+    import SiteHeader from "$lib/components/SiteHeader.svelte";
 
     let formData = {
         courtName: "",
@@ -81,40 +81,30 @@
 </svelte:head>
 
     <div class="page">
-        <header class="pb-header header">
-            <div class="pb-header-inner header-inner">
-                <div class="header-content">
-                    <a href="/partner/court" class="pb-brand-link brand-link">
-                        <img src={logo} alt="LESGO PiCKLE" class="pb-brand-logo brand-logo" />
-                        <h3 class="pb-brand-title brand-title">코트 등록</h3>
-                    </a>
-                </div>
-                <div class="pb-nav nav-links">
-                    <span class="pb-user-pill user-greeting">
-                        <span class="user-icon">🏸</span>
-                    <span class="user-name">{$auth?.name || $auth?.username || '사용자'}</span>님
-                </span>
-                <a
-                    href="/partner/court"
-                    class={`pb-btn-ghost nav-link court-link ${$page.url.pathname === '/partner/court' || $page.url.pathname.startsWith('/partner/court/') ? 'is-active' : ''}`}
-                    >코트관리</a
-                >
-                <a
-                    href="/partner/courtReservation"
-                    class={`pb-btn-ghost nav-link court-link ${$page.url.pathname === '/partner/courtReservation' ? 'is-active' : ''}`}
-                    >예약설정</a
-                >
-                <a
-                    href="/partner/profile"
-                    class={`pb-btn-ghost nav-link profile-link ${$page.url.pathname === '/partner/profile' ? 'is-active' : ''}`}
-                    >사업장정보</a
-                >
-                <button class="pb-btn-ghost nav-link logout-btn" on:click={handleLogout}
-                    >로그아웃</button
-                >
-                </div>
-            </div>
-        </header>
+    <SiteHeader title="코트 등록" brandHref="/partner/court" hasNav={!!$auth}>
+        <span class="pb-user-pill user-greeting">
+            <span class="user-icon">🏸</span>
+            <span class="user-name">{$auth?.name || $auth?.username || '사용자'}</span>님
+        </span>
+        <a
+          href="/partner/court"
+          class={`pb-btn-ghost nav-link court-link ${$page.url.pathname === '/partner/court' || $page.url.pathname.startsWith('/partner/court/') ? 'is-active' : ''}`}
+        >코트관리</a
+        >
+        <a
+          href="/partner/courtReservation"
+          class={`pb-btn-ghost nav-link court-link ${$page.url.pathname === '/partner/courtReservation' ? 'is-active' : ''}`}
+        >예약설정</a
+        >
+        <a
+          href="/partner/profile"
+          class={`pb-btn-ghost nav-link profile-link ${$page.url.pathname === '/partner/profile' ? 'is-active' : ''}`}
+        >사업장정보</a
+        >
+        <button class="pb-btn-ghost nav-link logout-btn" on:click={handleLogout}
+          >로그아웃</button
+        >
+    </SiteHeader>
 
     <main class="main">
         <button class="back-btn" on:click={() => goto("/partner/court")}
@@ -216,11 +206,6 @@
         min-height: 100vh;
         background: #f7fafc;
     }
-    .header { }
-    .header-inner { }
-    .brand-link { }
-    .brand-logo { }
-    .brand-title { }
     .user-greeting {
         white-space: nowrap;
     }
@@ -266,11 +251,6 @@
         background: rgba(72, 187, 120, 0.35);
         border-color: rgba(72, 187, 120, 0.6);
     }
-    .logout-btn {
-    }
-    .nav-links {
-    }
-
     .main {
         max-width: 600px;
         margin: 0 auto;

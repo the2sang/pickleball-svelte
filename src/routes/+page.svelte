@@ -9,7 +9,7 @@
   import { auth } from "$lib/stores/auth.js";
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
-  import logo from "$lib/assets/main_logo.png";
+  import SiteHeader from "$lib/components/SiteHeader.svelte";
 
   onMount(() => {
     auth.refresh();
@@ -27,37 +27,26 @@
 
 <div class="pb-shell page">
   <!-- Header -->
-    <header class="pb-header header">
-    <div class="pb-header-inner header-inner">
-      <div class="header-content">
-        <a href="/" class="pb-brand-link brand-link">
-          <img src={logo} alt="LESGO PiCKLE" class="pb-brand-logo brand-logo" />
-          <h1 class="pb-brand-title brand-title">피클볼 게임 예약하러 가자.. Let's GO!</h1>
-        </a>
-        <!-- <p class="header-sub">원하는 시간대의 게임을 찾아 예약하세요</p> -->
-      </div>
-      <div class="pb-nav nav-links">
-        {#if $auth}
-          <span class="pb-user-pill user-greeting">
-            <span class="user-icon">👤</span>
-            <span class="user-name">{$auth.name || $auth.username}</span>님
-          </span>
-          {#if $auth.accountType === 'PARTNER'}
-            <a href="/partner" class="pb-btn-ghost nav-link partner-link">사업장 관리</a>
-            <a href="/partner/profile" class="pb-btn-ghost nav-link profile-link">사업장정보</a>
-          {:else}
-            <a href="/profile" class="pb-btn-ghost nav-link profile-link">회원정보</a>
-          {/if}
-          <button class="pb-btn-ghost nav-link logout-btn" on:click={handleLogout}>
-            로그아웃
-          </button>
-        {:else}
-          <a href="/login" class="pb-btn-ghost nav-link login-link">로그인</a>
-          <a href="/signup" class="pb-btn-primary nav-link signup-link">회원가입</a>
-        {/if}
-      </div>
-    </div>
-  </header>
+  <SiteHeader title="라켓들고 LesGO!">
+    {#if $auth}
+      <span class="pb-user-pill user-greeting">
+        <span class="user-icon">👤</span>
+        <span class="user-name">{$auth.name || $auth.username}</span>님
+      </span>
+      {#if $auth.accountType === 'PARTNER'}
+        <a href="/partner" class="pb-btn-ghost nav-link partner-link">사업장 관리</a>
+        <a href="/partner/profile" class="pb-btn-ghost nav-link profile-link">사업장정보</a>
+      {:else}
+        <a href="/profile" class="pb-btn-ghost nav-link profile-link">회원정보</a>
+      {/if}
+      <button class="pb-btn-ghost nav-link logout-btn" on:click={handleLogout}>
+        로그아웃
+      </button>
+    {:else}
+      <a href="/login" class="pb-btn-ghost nav-link login-link">로그인</a>
+      <a href="/signup" class="pb-btn-primary nav-link signup-link">회원가입</a>
+    {/if}
+  </SiteHeader>
 
   <!-- Main Content -->
   <main class="pb-container main">
@@ -82,13 +71,6 @@
   .page {
     min-height: 100vh;
     background: linear-gradient(135deg, #f0f4f8 0%, #e8edf5 100%);
-  }
-  .header-inner {
-  }
-  .header-content {
-    display: flex;
-    align-items: center;
-    gap: 12px;
   }
   .user-greeting {
     white-space: nowrap;

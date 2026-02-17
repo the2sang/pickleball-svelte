@@ -1,7 +1,7 @@
 <script>
     import { goto } from "$app/navigation";
     import { auth } from "$lib/stores/auth.js";
-    import logo from "$lib/assets/main_logo.png";
+    import SiteHeader from "$lib/components/SiteHeader.svelte";
     import Modal from "$lib/components/Modal.svelte";
     import { TERMS_CONTENT } from "$lib/data/terms.js";
 
@@ -40,6 +40,12 @@
     let showConfirmModal = false;
     let signupError = "";
 
+    let usernameCheck = {
+        status: "idle", // idle | checking | available | taken | invalid | error
+        checkedValue: "",
+        message: "",
+    };
+
     let agreements = {
         all: false,
         service: false,
@@ -77,6 +83,121 @@
         signupError = "";
     }
 
+    function resetUsernameCheck(nextMessage = "") {
+        usernameCheck = {
+            status: "idle",
+            checkedValue: "",
+            message: nextMessage,
+        };
+    }
+
+    function handleUsernameInput() {
+        const current = formData.username.trim();
+        if (usernameCheck.checkedValue && usernameCheck.checkedValue !== current) {
+            resetUsernameCheck(
+                "아이디를 변경하셨습니다. 중복체크를 다시 진행해주세요."
+            );
+        }
+    }
+
+    async function checkUsernameDuplicate() {
+        const value = formData.username.trim();
+        signupError = "";
+
+        if (!value) {
+            errors = { ...errors, username: "사용자 ID를 입력해주세요" };
+            usernameCheck = {
+                status: "invalid",
+                checkedValue: "",
+                message: "아이디를 입력한 뒤 중복체크를 눌러주세요.",
+            };
+            return;
+        }
+
+        if (value.length < 4) {
+            errors = { ...errors, username: "사용자 ID는 4자 이상이어야 합니다" };
+            usernameCheck = {
+                status: "invalid",
+                checkedValue: "",
+                message: "아이디 형식을 확인해주세요.",
+            };
+            return;
+        }
+
+        if (value.length > 20) {
+            errors = { ...errors, username: "사용자 ID는 20자 이하여야 합니다" };
+            usernameCheck = {
+                status: "invalid",
+                checkedValue: "",
+                message: "아이디 형식을 확인해주세요.",
+            };
+            return;
+        }
+
+        if (!/^[a-zA-Z0-9_]+$/.test(value)) {
+            errors = {
+                ...errors,
+                username: "사용자 ID는 영문, 숫자, 언더스코어만 사용 가능합니다",
+            };
+            usernameCheck = {
+                status: "invalid",
+                checkedValue: "",
+                message: "아이디 형식을 확인해주세요.",
+            };
+            return;
+        }
+
+        if (errors.username) {
+            const next = { ...errors };
+            delete next.username;
+            errors = next;
+        }
+
+        usernameCheck = {
+            status: "checking",
+            checkedValue: "",
+            message: "확인 중...",
+        };
+
+        try {
+            const response = await fetch(
+                `/api/v1/auth/username/check?username=${encodeURIComponent(value)}`,
+                { method: "GET" }
+            );
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => null);
+                const validationMsg =
+                    errorData?.errors?.username ||
+                    errorData?.message ||
+                    "아이디를 다시 확인해주세요.";
+                usernameCheck = {
+                    status: "error",
+                    checkedValue: "",
+                    message: validationMsg,
+                };
+                return;
+            }
+
+            const data = await response.json();
+            usernameCheck = {
+                status: data.available ? "available" : "taken",
+                checkedValue: value,
+                message:
+                    data.message ||
+                    (data.available
+                        ? "사용 가능한 아이디입니다"
+                        : "이미 사용 중인 아이디입니다"),
+            };
+        } catch (err) {
+            usernameCheck = {
+                status: "error",
+                checkedValue: "",
+                message: "서버에 연결할 수 없습니다. 네트워크를 확인해주세요.",
+            };
+        }
+    }
+
     function validateForm() {
         let isValid = true;
         errors = {};
@@ -94,6 +215,19 @@
         } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
             errors.username =
                 "사용자 ID는 영문, 숫자, 언더스코어만 사용 가능합니다";
+            isValid = false;
+        }
+
+        const currentUsername = formData.username.trim();
+        const usernameCheckOk =
+            usernameCheck.status === "available" &&
+            usernameCheck.checkedValue === currentUsername;
+
+        if (currentUsername && !errors.username && !usernameCheckOk) {
+            errors.usernameCheck =
+                usernameCheck.status === "taken"
+                    ? "이미 사용 중인 아이디입니다. 다른 아이디를 입력해주세요."
+                    : "아이디 중복체크를 진행해주세요.";
             isValid = false;
         }
 
@@ -280,16 +414,11 @@
 
 <div class="page">
     <!-- Header -->
-  <header class="pb-header header">
-    <div class="pb-header-inner header-inner">
-      <div class="header-content">
-        <a href="/" class="pb-brand-link brand-link">
-          <img src={logo} alt="LESGO PiCKLE" class="pb-brand-logo brand-logo" />
-          <h3 class="pb-brand-title brand-title">피클볼 예약하러 가자..Let's GO! - 회원가입</h3>
-        </a>
-      </div>
-    </div>
-  </header>
+   <SiteHeader
+      title="라켓들고 LesGO! - 회원가입"
+     hasNav={false}
+     brandHref="/"
+   />
 
     <!-- Main Content -->
     <main class="main">
@@ -421,17 +550,49 @@
                     <label for="username" class="label">
                         로그인 ID <span class="required">*</span>
                     </label>
-                    <input
-                        type="text"
-                        id="username"
-                        bind:value={formData.username}
-                        class="input"
-                        class:error={errors.username}
-                        maxlength="20"
-                        placeholder="영문, 숫자, _ 사용 (4~20자)"
-                    />
+                    <div class="username-row">
+                        <input
+                            type="text"
+                            id="username"
+                            bind:value={formData.username}
+                            class="input"
+                            class:error={errors.username}
+                            maxlength="20"
+                            placeholder="영문, 숫자, _ 사용 (4~20자)"
+                            on:input={handleUsernameInput}
+                        />
+                        <button
+                            type="button"
+                            class="username-check-btn"
+                            on:click={checkUsernameDuplicate}
+                            disabled={
+                                submitted ||
+                                usernameCheck.status === "checking" ||
+                                !formData.username.trim()
+                            }
+                        >
+                            {usernameCheck.status === "checking"
+                                ? "확인중..."
+                                : "중복체크"}
+                        </button>
+                    </div>
                     {#if errors.username}
                         <span class="error-message">{errors.username}</span>
+                    {/if}
+                    {#if usernameCheck.message}
+                        <div
+                            class="username-check-message"
+                            class:ok={usernameCheck.status === "available"}
+                            class:bad={usernameCheck.status === "taken"}
+                        >
+                            {#if usernameCheck.status === "available"}
+                                <span class="username-check-badge">중복 확인 완료</span>
+                            {/if}
+                            <span>{usernameCheck.message}</span>
+                        </div>
+                    {/if}
+                    {#if errors.usernameCheck}
+                        <span class="error-message">{errors.usernameCheck}</span>
                     {/if}
                 </div>
 
@@ -975,19 +1136,13 @@
 </div>
 
 <style>
-    .page {
-        min-height: 100vh;
-        background: linear-gradient(135deg, #f0f4f8 0%, #e8edf5 100%);
-    }
-    .header { }
-    .header-inner { }
-    .header-content { }
-    .brand-link { }
-    .brand-logo { }
-    .brand-title { }
+  .page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f0f4f8 0%, #e8edf5 100%);
+  }
 
-    .main {
-        max-width: 640px;
+  .main {
+    max-width: 640px;
         margin: 0 auto;
         padding: 32px 16px;
     }
@@ -1113,6 +1268,74 @@
         font-family: inherit;
         transition: all 0.15s;
         outline: none;
+    }
+
+    .username-row {
+        display: grid;
+        grid-template-columns: 1fr 130px;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .username-check-btn {
+        padding: 12px 14px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        background: #fff;
+        color: #1a365d;
+        font-size: 13px;
+        font-weight: 800;
+    }
+
+    .username-check-btn:hover:not(:disabled) {
+        background: #f7fafc;
+        border-color: #cbd5e0;
+    }
+
+    .username-check-btn:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    .username-check-message {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        background: #f7fafc;
+        color: #4a5568;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .username-check-message.ok {
+        border-color: rgba(47, 133, 90, 0.35);
+        background: rgba(240, 255, 244, 0.7);
+        color: #22543d;
+    }
+
+    .username-check-message.bad {
+        border-color: rgba(197, 48, 48, 0.28);
+        background: rgba(255, 245, 245, 0.7);
+        color: #742a2a;
+    }
+
+    .username-check-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(47, 133, 90, 0.12);
+        border: 1px solid rgba(47, 133, 90, 0.28);
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: -0.01em;
+        color: #22543d;
+        white-space: nowrap;
     }
     .select {
         cursor: pointer;
@@ -1296,6 +1519,9 @@
             padding: 24px 20px;
         }
         .form-row {
+            grid-template-columns: 1fr;
+        }
+        .username-row {
             grid-template-columns: 1fr;
         }
         .button-group {
