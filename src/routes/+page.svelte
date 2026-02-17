@@ -22,7 +22,7 @@
 </script>
 
 <svelte:head>
-  <title>LESGO PiCKLE</title>
+  <title>LESGO</title>
 </svelte:head>
 
 <div class="pb-shell page">
