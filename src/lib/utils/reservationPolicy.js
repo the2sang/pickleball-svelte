@@ -1,4 +1,4 @@
-export const MAX_WAITING_COUNT = 0;
+export const MAX_WAITING_COUNT = 10;
 export const CANCEL_DEADLINE_HOURS = 2;
 
 export function isPartnerAccount(accountType) {

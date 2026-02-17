@@ -25,6 +25,7 @@
     let saving = false;
     let error = "";
     let successMsg = "";
+    let slotStatus = "등록 전";
 
     let rentalRequests = [];
     let rentalLoading = false;
@@ -96,6 +97,10 @@
         return aStart < bEnd && aEnd > bStart;
     }
 
+    function updateSlotStatusFromSlots(slots) {
+        slotStatus = slots.length > 0 ? "가져오기 성공" : "등록 전";
+    }
+
     async function fetchSettings() {
         if (!selectedCourtId) return;
         loading = true;
@@ -132,9 +137,11 @@
                     approvedRentalSlots = [];
                     timeSlots = [];
                 }
+                updateSlotStatusFromSlots(timeSlots);
             } else {
                 approvedRentalSlots = [];
                 timeSlots = [];
+                updateSlotStatusFromSlots(timeSlots);
             }
 
             await fetchRentalRequests();
@@ -336,10 +343,13 @@
                 throw new Error(body?.message || "저장 실패");
             }
 
+            timeSlots = filteredSlots;
+            slotStatus = "저장 됨";
             successMsg = "저장되었습니다.";
             setTimeout(() => (successMsg = ""), 3000);
         } catch (err) {
             error = err.message;
+            slotStatus = "저장 실패";
         } finally {
             saving = false;
         }
@@ -351,6 +361,65 @@
 
     function handleDateChange() {
         fetchSettings();
+    }
+
+    function shiftDate(dateStr, days) {
+        if (!dateStr) return "";
+        const d = new Date(`${dateStr}T00:00:00`);
+        if (Number.isNaN(d.getTime())) return "";
+        d.setDate(d.getDate() + days);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+    }
+
+    async function handleLoadPreviousDaySlots() {
+        if (!selectedCourtId || !selectedDate) return;
+
+        const prevDate = shiftDate(selectedDate, -1);
+        if (!prevDate) {
+            error = "전날 날짜 계산에 실패했습니다.";
+            return;
+        }
+
+        loading = true;
+        error = "";
+        successMsg = "";
+
+        try {
+            const res = await fetch(
+                `/api/v1/partner-manage/reservation/settings?courtId=${selectedCourtId}&date=${prevDate}`,
+                {
+                    headers: { Authorization: `Bearer ${getToken()}` },
+                },
+            );
+
+            if (!res.ok) {
+                throw new Error("전날 시간대를 불러오지 못했습니다.");
+            }
+
+            const data = await res.json();
+            const prevOpenSlots = (data.timeSlots || [])
+                .filter((s) => (s.type || "").toUpperCase() === "OPEN_GAME")
+                .map((s) => ({
+                    startTime: normalizeTime(s.startTime),
+                    endTime: normalizeTime(s.endTime),
+                }))
+                .sort((a, b) => toMinutes(a.startTime) - toMinutes(b.startTime));
+
+            timeSlots = prevOpenSlots;
+            updateSlotStatusFromSlots(prevOpenSlots);
+            successMsg =
+                prevOpenSlots.length > 0
+                    ? `전날(${prevDate}) 시간대 ${prevOpenSlots.length}개를 가져왔습니다.`
+                    : `전날(${prevDate})에 등록된 오픈게임 시간대가 없습니다.`;
+            setTimeout(() => (successMsg = ""), 3000);
+        } catch (err) {
+            error = err.message || "전날 시간대를 가져오지 못했습니다.";
+        } finally {
+            loading = false;
+        }
     }
 
     function addMinutes(timeStr, mins) {
@@ -494,6 +563,13 @@ function handleAddSlot() {
         ];
     }
 
+    function getSlotStatusClass() {
+        if (slotStatus === "저장 됨") return "saved";
+        if (slotStatus === "저장 실패") return "failed";
+        if (slotStatus === "가져오기 성공") return "loaded";
+        return "unregistered";
+    }
+
     function handleLogout() {
         auth.logout();
         goto("/login");
@@ -548,7 +624,7 @@ function handleAddSlot() {
                 </select>
             </div>
             <div class="control-group">
-                <label for="dateSelect" class="pb-label label">날짜 선택</label>
+                <label for="dateSelect" class="pb-label label">운동일자</label>
                 <input
                     id="dateSelect"
                     type="date"
@@ -571,10 +647,17 @@ function handleAddSlot() {
                 {/if}
 
                 <div class="slots-header">
-                    <span
-                        >{courts.find((c) => c.id == selectedCourtId)
-                            ?.courtName || ""} 시간대</span
-                    >
+                    <div class="slots-title-wrap">
+                        <span
+                            >{courts.find((c) => c.id == selectedCourtId)
+                                ?.courtName || ""} 운영시간</span
+                        >
+                        <span
+                            class={`save-state ${getSlotStatusClass()}`}
+                        >
+                            {slotStatus}
+                        </span>
+                    </div>
                     <span>운영 타입</span>
                 </div>
 
@@ -641,6 +724,13 @@ function handleAddSlot() {
                 {/if}
 
                     <div class="button-group">
+                        <button
+                            class="pb-btn-ghost copy-btn"
+                            on:click={handleLoadPreviousDaySlots}
+                            disabled={loading || saving}
+                        >
+                            전날 시간대 가져오기
+                        </button>
                         <button
                             class="pb-btn-ghost add-btn"
                             on:click={handleAddSlot}
@@ -900,11 +990,47 @@ function handleAddSlot() {
     .slots-header {
         display: flex;
         justify-content: space-between;
+        align-items: center;
         padding-bottom: 12px;
         border-bottom: 2px solid #edf2f7;
         font-weight: 700;
         color: #4a5568;
         margin-bottom: 16px;
+    }
+    .slots-title-wrap {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .save-state {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 1;
+    }
+    .save-state.saved {
+        color: #22543d;
+        background: #c6f6d5;
+        border: 1px solid #9ae6b4;
+    }
+    .save-state.loaded {
+        color: #1e3a8a;
+        background: #dbeafe;
+        border: 1px solid #93c5fd;
+    }
+    .save-state.unregistered {
+        color: #4a5568;
+        background: #edf2f7;
+        border: 1px solid #cbd5e0;
+    }
+    .save-state.failed {
+        color: #9b2c2c;
+        background: #fff5f5;
+        border: 1px solid #feb2b2;
     }
     .slot-row {
         display: flex;
@@ -979,6 +1105,10 @@ function handleAddSlot() {
         display: flex;
         gap: 10px;
         justify-content: flex-end;
+    }
+    .copy-btn {
+        color: #2b6cb0;
+        border-color: #bfdbfe;
     }
 
     .loading,

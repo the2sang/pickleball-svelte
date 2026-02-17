@@ -58,7 +58,7 @@
 <div class="pb-card card slide-up">
   <div class="step-header">
     <span class="step-number">2</span>
-    <span class="step-title">날짜 선택</span>
+    <span class="step-title">운동일자</span>
     <button class="yesterday-link" onclick={goToYesterday}>어제</button>
     <button class="today-link" onclick={goToToday}>오늘</button>
   </div>

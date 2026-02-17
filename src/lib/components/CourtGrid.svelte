@@ -17,7 +17,6 @@
   let loading = false;
   let selectedCourtId = null;
   let showLoginPrompt = false;
-  let showClosedPrompt = false;
   let rentalOpen = false;
 
   $: if ($selectedDate && $filteredCourts && $filteredCourts.length > 0 && $refreshTrigger >= 0) {
@@ -30,6 +29,13 @@
 
   $: selectedCourt = $filteredCourts?.find(c => c.id === selectedCourtId);
   $: selectedCourtSlots = selectedCourtId ? courtSlotsMap[selectedCourtId] : null;
+  $: partnerName = $partnerInfo?.businessPartner || $partnerInfo?.name || "";
+  $: courtTitle =
+    selectedCourtSlots && selectedCourtSlots.courtName
+      ? selectedCourtSlots.courtName
+      : (selectedCourt?.courtName || selectedCourt?.name || '코트');
+  $: courtTitleWithPartner =
+    partnerName ? `${partnerName} / ${courtTitle}` : courtTitle;
 
   async function loadSlots() {
     loading = true;
@@ -69,12 +75,7 @@
     }
   }
 
-  function getSlotInfo(timeSlot) {
-    if (!selectedCourtSlots) return null;
-    return selectedCourtSlots.slots.find((s) => s.timeSlot === timeSlot);
-  }
-
-  function openDetail(timeSlot, info) {
+  function openApplicants(timeSlot, info) {
     if (!info || !selectedCourt) return;
 
     if (!$auth) {
@@ -82,16 +83,11 @@
       return;
     }
 
-    // 현재 시간이 지난 시간대인지 확인
-    if (isPastSlot(timeSlot, $selectedDate)) {
-      showClosedPrompt = true;
-      return;
-    }
-
     modalData.set({
       court: selectedCourt,
       timeSlot,
       reservation: { ...info, date: $selectedDate },
+      shouldAutoClose: true,
     });
     modalOpen.set(true);
   }
@@ -113,6 +109,10 @@
 
   function getStatusStyle(info, timeSlot) {
     if (!info) return { bg: "#f7fafc", color: "#cbd5e0", opacity: 0.5 }; // No slot
+
+    if (info.scheduleType === "RENTAL") {
+      return { bg: "#87CEEB", color: "#0c4a6e", opacity: 1 };
+    }
 
     // 현재 시간이 지난 시간대는 마감 처리
     if (timeSlot && isPastSlot(timeSlot, $selectedDate)) {
@@ -149,8 +149,8 @@
     );
 
     if (counts.isFull) return "마감";
-    if (counts.total > 0) return "예약가능";
-    return "예약접수";
+    if (counts.total > 0) return "접수 진행 중";
+    return "참가접수";
   }
 
   function getScheduleTypeLabel(scheduleType) {
@@ -159,7 +159,7 @@
     return "";
   }
 
-  // 시간대 포맷팅: "06:00~09:00" → "오전6시~9시(3시간)"
+  // 시간대 포맷팅: "06:00~09:00" → "AM6~PM12(6H)"
   function formatTimeSlot(timeSlot) {
     try {
       const [startStr, endStr] = timeSlot.split('~').map(s => s.trim());
@@ -167,17 +167,17 @@
       const [endHour, endMin] = endStr.split(':').map(Number);
 
       // 오전/오후 구분
-      const startPeriod = startHour < 12 ? '오전' : '오후';
-      const endPeriod = endHour < 12 ? '오전' : '오후';
+      const startPeriod = startHour < 12 ? 'AM' : 'PM';
+      const endPeriod = endHour < 12 ? 'AM' : 'PM';
 
       // 12시간 형식 변환
       const startHour12 = startHour === 0 ? 12 : (startHour > 12 ? startHour - 12 : startHour);
       const endHour12 = endHour === 0 ? 12 : (endHour > 12 ? endHour - 12 : endHour);
 
-      // 시간 포맷 (분이 00이면 생략, 앞자리 0 제거)
+      // 간결 형식 (분은 00이면 생략)
       const formatTime = (hour, min, showPeriod = true, period = '') => {
-        const minStr = min > 0 ? `${min}분` : '';
-        return `${showPeriod ? period : ''}${hour}시${minStr}`;
+        const minStr = min > 0 ? `:${String(min).padStart(2, "0")}` : '';
+        return `${showPeriod ? period : ''}${hour}${minStr}`;
       };
 
       const startTimeStr = formatTime(startHour12, startMin, true, startPeriod);
@@ -189,8 +189,8 @@
       const minutes = totalMinutes % 60;
 
       const durationStr = minutes > 0
-        ? `${hours}시간${minutes}분`
-        : `${hours}시간`;
+        ? `${hours}H${minutes}M`
+        : `${hours}H`;
 
       return `${startTimeStr}~${endTimeStr}(${durationStr})`;
     } catch (e) {
@@ -203,7 +203,7 @@
 <div class="pb-card card slide-up">
   <div class="step-header">
     <span class="step-number">3</span>
-    <span class="step-title">시간대별 게임 현황</span>
+    <span class="step-title">참가신청 - 코트선택 후 시간대를 확인하세요</span>
     {#if loading}
       <span class="loading-text">불러오는 중...</span>
     {/if}
@@ -211,10 +211,10 @@
 
   <div class="legend">
     <span class="legend-item"
-      ><span class="dot" style="background:#E8F5E9"></span> 예약접수</span
+      ><span class="dot" style="background:#E8F5E9"></span> 참가접수</span
     >
     <span class="legend-item"
-      ><span class="dot" style="background:#FFF3E0"></span> 일부예약</span
+      ><span class="dot" style="background:#FFF3E0"></span> 접수 진행 중</span
     >
     <span class="legend-item"
       ><span class="dot" style="background:#FFEBEE"></span> 마감</span
@@ -238,16 +238,18 @@
         </button>
       {/each}
     </div>
-    {#if $auth && $auth.accountType !== 'PARTNER'}
-      <button class="rental-btn" on:click={openRentalRequest}>대관신청</button>
-    {/if}
   </div>
 
   <!-- Court Content -->
   {#if selectedCourt && selectedCourtSlots}
     <div class="court-content">
       <div class="court-info">
-        <h3 class="court-title">{selectedCourtSlots.courtName || selectedCourt.courtName || selectedCourt.name || '코트'}</h3>
+        <div class="court-title-row">
+          <h3 class="court-title">{courtTitleWithPartner}</h3>
+          {#if $auth && $auth.accountType !== 'PARTNER'}
+            <button class="rental-btn rental-btn-inline" on:click={openRentalRequest}>대관신청</button>
+          {/if}
+        </div>
         <div class="court-details">
           <span>정원: {selectedCourtSlots.personnelNumber}명</span>
           <LevelBadge level={selectedCourtSlots.courtLevel || selectedCourt.courtLevel || selectedCourt.level} />
@@ -265,14 +267,11 @@
             slotInfo.reservedCount ?? slotInfo.players?.length ?? 0,
             slotInfo.capacity ?? slotInfo.personnelNumber ?? selectedCourtSlots.personnelNumber
           )}
-          {@const confirmedPlayers = (slotInfo.players || []).filter(p => !p.isWaiting)}
-          {@const waitingPlayers = (slotInfo.players || []).filter(p => p.isWaiting)}
           <div class="slot-wrapper">
-            <button
+            <div
               class="slot-item"
-              disabled={$auth && (slotInfo.status === "CLOSED" || isPast || isRentalRestricted || counts.isFull)}
+              class:locked={slotInfo.status === "CLOSED" || isPast}
               style="background:{style.bg}; border-color:{style.color}"
-              on:click={() => openDetail(slotInfo.timeSlot, slotInfo)}
             >
               <div class="slot-left">
                 <div class="slot-time">⏰ {formatTimeSlot(slotInfo.timeSlot)}</div>
@@ -282,69 +281,50 @@
                   </span>
                 {/if}
               </div>
-              {#if isRentalRestricted}
-                <div class="slot-info">
-                  <div class="rental-notice">일반 예약 불가</div>
-                </div>
+                {#if isRentalRestricted}
+                  <div class="slot-info">
+                    <button
+                      class="slot-status-link slot-status-link--disabled"
+                      style="color:{style.color}"
+                      type="button"
+                      on:click={() => openApplicants(slotInfo.timeSlot, slotInfo)}
+                    >
+                      불가
+                    </button>
+                    <div class="rental-notice">일반 예약 불가</div>
+                    <button
+                      class="pb-btn-ghost player-view-btn"
+                      aria-label="신청자 보기"
+                      type="button"
+                      on:click={() => openApplicants(slotInfo.timeSlot, slotInfo)}
+                    >
+                      <span class="people-icon" aria-hidden="true">👤</span>
+                    </button>
+                  </div>
               {:else}
                 <div class="slot-info">
                   <div class="slot-count" style="color:{style.color}">
                     {counts.total}/{counts.cap}명
                   </div>
-                  <div class="slot-status" style="color:{style.color}">
+                  <button
+                    class="slot-status-link"
+                    style="color:{style.color}"
+                    type="button"
+                    on:click={() => openApplicants(slotInfo.timeSlot, slotInfo)}
+                  >
                     {getStatusLabel(slotInfo, slotInfo.timeSlot)}
-                  </div>
+                  </button>
+                  <button
+                    class="pb-btn-ghost player-view-btn"
+                    aria-label="신청자 보기"
+                    type="button"
+                    on:click={() => openApplicants(slotInfo.timeSlot, slotInfo)}
+                  >
+                    <span class="people-icon" aria-hidden="true">👤</span>
+                  </button>
                 </div>
               {/if}
-            </button>
-
-            <!-- Hover Popup -->
-            {#if slotInfo.players && slotInfo.players.length > 0}
-              <div class="hover-popup">
-                <div class="popup-header">
-                  <span class="popup-time">⏰ {formatTimeSlot(slotInfo.timeSlot)}</span>
-                  <span class="popup-count">{slotInfo.reservedCount}/{slotInfo.capacity}명</span>
-                </div>
-                {#if confirmedPlayers.length > 0}
-                  <div class="popup-section confirmed">
-                    <div class="popup-section-title">확정 ({confirmedPlayers.length}명)</div>
-                    {#each confirmedPlayers as p (p.orderNumber)}
-                      <div class="popup-player">
-                        <span class="popup-order confirmed">{p.orderNumber}</span>
-                        <span class="popup-name">{p.nicName || p.name}</span>
-                        {#if p.gameLevel}
-                          <span class="popup-level">{p.gameLevel}</span>
-                        {/if}
-                        {#if p.sex}
-                          <span class="popup-sex">{p.sex === '남성' ? '♂' : '♀'}</span>
-                        {/if}
-                      </div>
-                    {/each}
-                  </div>
-                {/if}
-                 {#if waitingPlayers.length > 0}
-                  <div class="popup-section waiting">
-                    <div class="popup-section-title waiting">대기 ({waitingPlayers.length}명)</div>
-                    {#each waitingPlayers as p (p.orderNumber)}
-                      <div class="popup-player">
-                        <span class="popup-order waiting">{p.orderNumber}</span>
-                        <span class="popup-name">{p.nicName || p.name}</span>
-                        {#if p.gameLevel}
-                          <span class="popup-level">{p.gameLevel}</span>
-                        {/if}
-                        {#if p.sex}
-                          <span class="popup-sex">{p.sex === '남성' ? '♂' : '♀'}</span>
-                        {/if}
-                      </div>
-                    {/each}
-                  </div>
-                 {/if}
-              </div>
-            {:else if !isRentalRestricted}
-              <div class="hover-popup">
-                <div class="popup-empty">아직 예약자가 없습니다</div>
-              </div>
-            {/if}
+            </div>
           </div>
         {/each}
       </div>
@@ -386,36 +366,6 @@
         <a href="/signup" class="login-modal-btn secondary">회원가입</a>
       </div>
       <button class="login-modal-close" on:click={() => (showLoginPrompt = false)}>닫기</button>
-    </div>
-  </div>
-{/if}
-
-<!-- Closed Prompt Modal -->
-{#if showClosedPrompt}
-  <div
-    class="login-overlay"
-    role="button"
-    tabindex="0"
-    on:click={() => (showClosedPrompt = false)}
-    on:keydown={(e) => e.key === "Escape" && (showClosedPrompt = false)}
-  >
-    <div
-      class="login-modal"
-      role="dialog"
-      tabindex="0"
-      aria-labelledby="closed-prompt-title"
-      on:click|stopPropagation
-      on:keydown|stopPropagation
-    >
-      <div class="login-modal-icon">⏰</div>
-      <h3 id="closed-prompt-title" class="login-modal-title">예약 마감되었습니다</h3>
-      <p class="login-modal-msg">
-        해당 시간대는 이미 지나 예약이 불가능합니다.<br />
-        다른 시간대를 선택해주세요.
-      </p>
-      <div class="login-modal-actions">
-        <button class="login-modal-btn primary" on:click={() => (showClosedPrompt = false)}>확인</button>
-      </div>
     </div>
   </div>
 {/if}
@@ -500,7 +450,7 @@
 
   .rental-btn {
     flex-shrink: 0;
-    padding: 12px 14px;
+    padding: 4px 14px;
     border-radius: 10px;
     border: none;
     background: linear-gradient(135deg, #1a365d, #2a4a7f);
@@ -564,6 +514,11 @@
     font-weight: 700;
     color: #1a365d;
   }
+  .court-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
   .court-details {
     display: flex;
     align-items: center;
@@ -576,46 +531,43 @@
   /* Slots List */
   .slots-list {
     display: grid;
-    gap: 10px;
-  }
-  .slot-wrapper {
-    position: relative;
+    gap: 6px;
   }
   .slot-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
+    padding: 10px 12px;
     border-radius: 10px;
     border: 2px solid;
-    cursor: pointer;
+    cursor: default;
     transition: all 0.2s;
     font-family: inherit;
     background: #fff;
     width: 100%;
   }
-  .slot-item:not(:disabled):hover {
-    transform: translateX(4px);
+  .slot-item:not(.locked):hover {
+    transform: none;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
-  .slot-item:disabled {
+  .slot-item.locked {
     cursor: not-allowed;
     opacity: 0.7;
   }
   .slot-left {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 6px;
   }
   .slot-time {
     font-weight: 700;
-    font-size: 16px;
+    font-size: 13px;
     color: #2d3748;
   }
   .slot-type {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
-    padding: 3px 10px;
+    padding: 2px 8px;
     border-radius: 12px;
     background: #e3f2fd;
     color: #1565c0;
@@ -627,148 +579,58 @@
   .slot-info {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
+  }
+  .player-view-btn {
+    margin-left: auto;
+    padding: 4px;
+    border-radius: 999px;
+    min-width: auto;
+    width: 26px;
+    height: 26px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .people-icon {
+    font-size: 14px;
+    line-height: 1;
   }
   .slot-count {
     font-weight: 700;
-    font-size: 18px;
+    font-size: 14px;
   }
-  .slot-status {
-    font-size: 13px;
+  .slot-status-link {
+    font-size: 12px;
     font-weight: 600;
-    padding: 4px 12px;
+    padding: 2px 8px;
+    border: none;
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.6);
-  }
-  .rental-notice {
-    font-size: 13px;
-    font-weight: 600;
-    color: #e65100;
-    padding: 4px 12px;
-    border-radius: 12px;
-    background: rgba(255, 243, 224, 0.6);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    font-family: inherit;
+    line-height: 1.4;
   }
 
-  /* Hover Popup */
-  .hover-popup {
-    display: none;
-    position: absolute;
-    right: 0;
-    top: 100%;
-    margin-top: 6px;
-    width: 280px;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
-    border: 1.5px solid #e2e8f0;
-    z-index: 100;
-    padding: 14px;
-    animation: popupFadeIn 0.15s ease;
+  .slot-status-link:hover {
+    text-decoration-thickness: 2px;
   }
-  .slot-wrapper:hover .hover-popup {
-    display: block;
+
+  .slot-status-link--disabled {
+    background: #fffaf5;
+    border: 1px solid #fcd9b6;
   }
-  .popup-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-bottom: 10px;
-    margin-bottom: 10px;
-    border-bottom: 1px solid #edf2f7;
-  }
-  .popup-time {
-    font-weight: 700;
-    font-size: 14px;
-    color: #1a365d;
-  }
-  .popup-count {
-    font-size: 13px;
-    font-weight: 700;
-    color: #4a5568;
-    background: #edf2f7;
-    padding: 2px 10px;
-    border-radius: 10px;
-  }
-  .popup-section {
-    margin-bottom: 8px;
-  }
-  .popup-section:last-child {
-    margin-bottom: 0;
-  }
-  .popup-section-title {
-    font-size: 11px;
-    font-weight: 700;
-    color: #2e7d32;
-    margin-bottom: 6px;
-    padding: 2px 8px;
-    background: #e8f5e9;
-    border-radius: 6px;
-    display: inline-block;
-  }
-  .popup-section-title.waiting {
+  .rental-notice {
+    font-size: 12px;
+    font-weight: 600;
     color: #e65100;
-    background: #fff3e0;
-  }
-  .popup-player {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 5px 6px;
-    border-radius: 6px;
-    transition: background 0.1s;
-  }
-  .popup-player:hover {
-    background: #f7fafc;
-  }
-  .popup-order {
-    min-width: 22px;
-    height: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    font-size: 11px;
-    font-weight: 700;
-    color: #fff;
-    flex-shrink: 0;
-  }
-  .popup-order.confirmed {
-    background: #2e7d32;
-  }
-  .popup-order.waiting {
-    background: #e65100;
-  }
-  .popup-name {
-    font-size: 13px;
-    font-weight: 600;
-    color: #2d3748;
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .popup-level {
-    font-size: 10px;
-    font-weight: 600;
-    color: #4299e1;
-    background: #ebf8ff;
-    padding: 1px 7px;
-    border-radius: 8px;
-    white-space: nowrap;
-  }
-  .popup-sex {
-    font-size: 13px;
-    color: #718096;
-  }
-  .popup-empty {
-    text-align: center;
-    padding: 12px 0;
-    color: #a0aec0;
-    font-size: 13px;
-  }
-  @keyframes popupFadeIn {
-    from { opacity: 0; transform: translateY(-4px); }
-    to { opacity: 1; transform: translateY(0); }
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(255, 243, 224, 0.6);
   }
 
   .empty-msg {

@@ -3,15 +3,20 @@
     selectedPartner,
     partnerInfo,
     courts,
+    successOpen,
+    successMessage,
   } from "$lib/stores/reservation.js";
   import { auth } from "$lib/stores/auth.js";
-  import { onMount } from "svelte";
+  import { parseApiErrorResponse } from "$lib/utils/apiError.js";
+  import { goto } from "$app/navigation";
+  import { onDestroy, onMount } from "svelte";
 
   let partners = [];
   let keyword = "";
   let loading = false;
   let totalCount = 0;
   let searchTimer;
+  let favoriteToastTimer;
   let fetchError = "";
 
   onMount(() => {
@@ -25,6 +30,11 @@
     }, 300);
   }
 
+  onDestroy(() => {
+    clearTimeout(searchTimer);
+    clearTimeout(favoriteToastTimer);
+  });
+
   async function fetchPartners() {
     loading = true;
     fetchError = "";
@@ -35,7 +45,7 @@
     }
 
     try {
-      const params = new URLSearchParams({ page: "1", size: "20" });
+      const params = new URLSearchParams({ page: "1", size: "6" });
       if (keyword.trim()) {
         params.set("keyword", keyword.trim());
       }
@@ -75,6 +85,58 @@
     }
   }
 
+  function isMemberUser() {
+    return String($auth?.accountType || "").toUpperCase() === "MEMBER";
+  }
+
+  async function toggleFavorite(event, partner) {
+    event.stopPropagation();
+
+    if (!$auth?.accessToken) {
+      alert("즐겨찾기는 로그인 후 이용할 수 있습니다. 로그인 페이지로 이동합니다.");
+      goto("/login");
+      return;
+    }
+    if (!isMemberUser()) {
+      alert("일반 회원만 즐겨찾기를 설정할 수 있습니다.");
+      return;
+    }
+
+    const isFavorite = !!partner.favorite;
+    try {
+      const res = await fetch(`/api/v1/partners/${partner.id}/favorites`, {
+        method: isFavorite ? "DELETE" : "POST",
+        headers: {
+          Authorization: `Bearer ${$auth.accessToken}`,
+        },
+      });
+
+      if (!res.ok) {
+        const apiErr = await parseApiErrorResponse(res);
+        throw new Error(apiErr.message);
+      }
+
+      await fetchPartners();
+      showFavoriteToast(
+        isFavorite
+          ? "즐겨 찾기가 해제 되었습니다."
+          : "사업장 즐겨찾기가 추가되었습니다. 최대 6개까지 가능"
+      );
+    } catch (e) {
+      alert(e?.message || "즐겨찾기 처리 중 오류가 발생했습니다.");
+    }
+  }
+
+  function showFavoriteToast(message) {
+    successMessage.set(message);
+    successOpen.set(true);
+    clearTimeout(favoriteToastTimer);
+    favoriteToastTimer = setTimeout(() => {
+      successOpen.set(false);
+      successMessage.set("");
+    }, 2000);
+  }
+
   async function fetchCourts(partnerId) {
     const headers = {};
 
@@ -107,7 +169,7 @@
 <div class="pb-card card">
   <div class="step-header">
     <span class="step-number">1</span>
-    <span class="step-title">사업장 선택</span>
+    <span class="step-title">플레이그라운드</span>
     {#if totalCount > 0}
       <span class="badge">{totalCount}개</span>
     {/if}
@@ -165,23 +227,45 @@
   {:else}
     <div class="partner-grid">
       {#each partners as p (p.id)}
-        <button
+        <div
           class="partner-card"
           class:selected={$selectedPartner === p.id}
+          role="button"
+          tabindex="0"
           on:click={() => selectPartner(p.id)}
+          on:keydown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              selectPartner(p.id);
+            }
+          }}
         >
           <div class="partner-top">
             <div class="partner-name">{p.businessPartner}</div>
-            {#if $selectedPartner === p.id}
-              <span class="check-badge">✓</span>
-            {/if}
+            <div class="partner-actions">
+              {#if isMemberUser() || !$auth}
+                <button
+                  type="button"
+                  class="favorite-btn"
+                  class:active={!!p.favorite}
+                  aria-label={p.favorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
+                  title={p.favorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
+                  on:click={(e) => toggleFavorite(e, p)}
+                >
+                  {p.favorite ? "★" : "☆"}
+                </button>
+              {/if}
+              {#if $selectedPartner === p.id}
+                <span class="check-badge">✓</span>
+              {/if}
+            </div>
           </div>
           <div class="partner-owner">👤 {p.owner}</div>
           <div class="partner-addr">📍 {p.partnerAddress}</div>
           {#if p.courtCount > 0}
             <div class="partner-courts">🏟️ 코트 {p.courtCount}개</div>
           {/if}
-        </button>
+        </div>
       {/each}
     </div>
   {/if}
@@ -385,11 +469,40 @@
     align-items: center;
     justify-content: space-between;
     margin-bottom: 6px;
+    gap: 8px;
+  }
+  .partner-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
   .partner-name {
     font-weight: 700;
     font-size: 14px;
     color: #1a365d;
+  }
+  .favorite-btn {
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    line-height: 1;
+    background: #edf2f7;
+    color: #718096;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .favorite-btn:hover {
+    background: #e2e8f0;
+    color: #d69e2e;
+  }
+  .favorite-btn.active {
+    background: #fff7d6;
+    color: #d69e2e;
   }
   .check-badge {
     width: 20px;

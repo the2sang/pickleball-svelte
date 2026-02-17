@@ -22,7 +22,7 @@
 </script>
 
 <svelte:head>
-  <title>LESGO PiCKLE</title>
+  <title>LESGO</title>
 </svelte:head>
 
 <div class="pb-shell page">
@@ -72,53 +72,63 @@
     min-height: 100vh;
     background: linear-gradient(135deg, #f0f4f8 0%, #e8edf5 100%);
   }
+  .page :global(.pb-header) {
+    color: #4a3a00;
+    background: linear-gradient(135deg, #fb923c 0%, #f97316 55%, #ea580c 100%);
+    box-shadow: 0 10px 30px rgba(154, 52, 18, 0.24);
+  }
   .user-greeting {
     white-space: nowrap;
+    color: #5b4300;
+    background: rgba(255, 255, 255, 0.48);
+    border-color: rgba(120, 84, 0, 0.25);
   }
   .user-icon {
     font-size: 16px;
   }
   .user-name {
-    color: #90cdf4;
+    color: #7a4f00;
     font-weight: 700;
   }
   .nav-link {
-    color: #fff;
+    color: #5a4300;
     text-decoration: none;
     white-space: nowrap;
   }
   .login-link {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.35);
+    border-color: rgba(120, 84, 0, 0.24);
   }
   .login-link:hover {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.55);
+    border-color: rgba(120, 84, 0, 0.36);
   }
   .signup-link {
-    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.18);
+    color: #fff;
+    box-shadow: 0 10px 26px rgba(120, 84, 0, 0.24);
   }
   .partner-link {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.28);
-    color: #e6fffa;
+    background: rgba(255, 255, 255, 0.35);
+    border-color: rgba(120, 84, 0, 0.24);
+    color: #5a4300;
   }
   .partner-link:hover {
-    background: rgba(255, 255, 255, 0.18);
-    border-color: rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.55);
+    border-color: rgba(120, 84, 0, 0.36);
   }
   .profile-link {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.28);
-    color: #e2f0ff;
+    background: rgba(255, 255, 255, 0.35);
+    border-color: rgba(120, 84, 0, 0.24);
+    color: #5a4300;
   }
   .profile-link:hover {
-    background: rgba(255, 255, 255, 0.18);
-    border-color: rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.55);
+    border-color: rgba(120, 84, 0, 0.36);
   }
   .logout-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.35);
+    border-color: rgba(120, 84, 0, 0.24);
+    color: #5a4300;
     cursor: pointer;
     font-family: inherit;
   }

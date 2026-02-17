@@ -1,0 +1,26 @@
+<svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pickleball paddle">
+  <defs>
+    <linearGradient id="paddleFace" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a365d"/>
+      <stop offset="100%" stop-color="#2b6cb0"/>
+    </linearGradient>
+  </defs>
+
+  <ellipse cx="34" cy="30" rx="19" ry="24" fill="url(#paddleFace)"/>
+  <rect x="31" y="50" width="6" height="14" rx="3" fill="#8b5e3c"/>
+  <rect x="28" y="62" width="12" height="12" rx="4" fill="#a67c52"/>
+
+  <circle cx="28" cy="22" r="2" fill="#dbeafe"/>
+  <circle cx="39" cy="20" r="2" fill="#dbeafe"/>
+  <circle cx="31" cy="30" r="2" fill="#dbeafe"/>
+  <circle cx="42" cy="30" r="2" fill="#dbeafe"/>
+  <circle cx="28" cy="38" r="2" fill="#dbeafe"/>
+  <circle cx="39" cy="40" r="2" fill="#dbeafe"/>
+
+  <circle cx="58" cy="52" r="8" fill="#f6ad55"/>
+  <circle cx="58" cy="52" r="1.2" fill="#fffaf0"/>
+  <circle cx="54.8" cy="49.4" r="1.2" fill="#fffaf0"/>
+  <circle cx="61.2" cy="49.4" r="1.2" fill="#fffaf0"/>
+  <circle cx="54.8" cy="54.6" r="1.2" fill="#fffaf0"/>
+  <circle cx="61.2" cy="54.6" r="1.2" fill="#fffaf0"/>
+</svg>

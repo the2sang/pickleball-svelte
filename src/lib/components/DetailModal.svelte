@@ -8,12 +8,17 @@
     getReservationCounts,
     isCancelDeadlinePassed,
     isGeneralMember,
+    isPastSlot,
   } from '$lib/utils/reservationPolicy.js';
   import { parseApiErrorResponse } from '$lib/utils/apiError.js';
 
   let cancelLoading = $state(false);
   let cancelError = $state('');
   let cancelConfirmOpen = $state(false);
+  let autoCloseTimer;
+  let autoCloseInterval;
+  let autoCloseRemaining = $state(0);
+  const AUTO_CLOSE_SECONDS = 10;
 
   function handleReserve() {
     modalOpen.set(false);
@@ -65,10 +70,14 @@
   const status = $derived(String($modalData?.reservation?.status ?? '').trim().toUpperCase());
   const scheduleType = $derived(String($modalData?.reservation?.scheduleType ?? '').trim().toUpperCase());
   const isClosed = $derived(status === 'CLOSED');
+  const isPast = $derived(
+    !$modalData ? false : isPastSlot($modalData.timeSlot, $selectedDate)
+  );
   const isRental = $derived(scheduleType === 'RENTAL');
   const isRentalRestricted = $derived(isRental && isGeneralMember($auth?.accountType));
-  const isFull = $derived(counts.isFull);
-  const canReserve = $derived(!isClosed && !isRentalRestricted && !isFull);
+  const isWaitingFull = $derived(counts.isWaitingFull);
+  const canReserve = $derived(!isClosed && !isPast && !isRentalRestricted && !isWaitingFull);
+  const autoClose = $derived(!!$modalData?.shouldAutoClose);
 
   const cancelDeadlinePassed = $derived(
     !$modalData ? false : isCancelDeadlinePassed($modalData.timeSlot, $selectedDate)
@@ -77,12 +86,64 @@
   const currentUsername = $derived($auth?.username ?? '');
   const myReservation = $derived(players.find(p => p.username === currentUsername) ?? null);
   const isMyReserved = $derived(!!myReservation);
+
+  function clearAutoCloseTimers() {
+    if (autoCloseTimer) {
+      clearTimeout(autoCloseTimer);
+      autoCloseTimer = undefined;
+    }
+
+    if (autoCloseInterval) {
+      clearInterval(autoCloseInterval);
+      autoCloseInterval = undefined;
+    }
+  }
+
+  function startAutoCloseCountdown() {
+    clearAutoCloseTimers();
+    autoCloseRemaining = AUTO_CLOSE_SECONDS;
+
+    autoCloseInterval = setInterval(() => {
+      autoCloseRemaining = Math.max(autoCloseRemaining - 1, 0);
+      if (autoCloseRemaining <= 0) {
+        clearInterval(autoCloseInterval);
+        autoCloseInterval = undefined;
+      }
+    }, 1000);
+
+    autoCloseTimer = setTimeout(() => {
+      modalOpen.set(false);
+    }, AUTO_CLOSE_SECONDS * 1000);
+  }
+
+  $effect(() => {
+    if (!$modalOpen) {
+      autoCloseRemaining = 0;
+      clearAutoCloseTimers();
+      return;
+    }
+
+    if (!autoClose) {
+      autoCloseRemaining = 0;
+      clearAutoCloseTimers();
+      return;
+    }
+
+    startAutoCloseCountdown();
+
+    return () => {
+      clearAutoCloseTimers();
+    };
+  });
 </script>
 
 <Modal open={$modalOpen} onclose={() => modalOpen.set(false)}>
   {#snippet children()}
     {#if $modalData}
       <div class="header">
+        {#if autoClose}
+          <div class="auto-close-countdown">⏱ {autoCloseRemaining}초 후 닫힘</div>
+        {/if}
         <div>
           <h3 class="court-name">{$modalData.court.courtName || $modalData.court.name || '코트'}</h3>
           <p class="meta">{$selectedDate} · {$modalData.timeSlot}</p>
@@ -151,16 +212,18 @@
               예약 취소하기
             {/if}
           </button>
-        {:else if isClosed}
+        {:else if isClosed || isPast}
           <button class="pb-btn-ghost btn-disabled" disabled>마감</button>
         {:else if isRentalRestricted}
           <button class="pb-btn-ghost btn-disabled" disabled>일반 예약 불가</button>
-        {:else if isFull}
-          <button class="pb-btn-ghost btn-disabled" disabled>마감</button>
-        {:else}
+        {:else if canReserve}
           <button class="pb-btn-primary btn-primary" onclick={handleReserve}>
             예약 신청하기
           </button>
+        {:else if isWaitingFull}
+          <button class="pb-btn-ghost btn-disabled" disabled>마감</button>
+        {:else}
+          <button class="pb-btn-ghost btn-disabled" disabled>마감</button>
         {/if}
       </div>
     {/if}
@@ -202,6 +265,23 @@
   .header {
     display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;
   }
+  .auto-close-countdown {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    text-align: center;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 700;
+    color: #9c5500;
+    background: #fff5bf;
+    border: 1px solid #ffd54f;
+    border-radius: 999px;
+    padding: 4px 10px;
+    max-width: 55%;
+  }
+
   .court-name { margin: 0; font-size: 18px; font-weight: 800; color: #1a365d; }
   .meta { margin: 4px 0 0; font-size: 13px; color: #718096; }
   .players-section {

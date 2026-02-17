@@ -1,5 +1,6 @@
 <script>
   import Modal from "./Modal.svelte";
+  import paddleImage from "$lib/assets/pickleball-paddle.svg";
   import {
     selectedDate,
     partnerInfo,
@@ -65,8 +66,10 @@
 <Modal open={$confirmOpen} onclose={() => confirmOpen.set(false)}>
   {#snippet children()}
     <div class="confirm-body">
-      <div class="icon">🏓</div>
-      <h3 class="title">예약을 확정하시겠습니까?</h3>
+      <div class="confirm-header">
+        <img class="icon" src={paddleImage} alt="피클볼 패들" />
+        <h3 class="title">예약을 확정하시겠습니까?</h3>
+      </div>
 
       {#if $modalData}
         <div class="summary">
@@ -106,12 +109,20 @@
   .confirm-body {
     text-align: center;
   }
+  .confirm-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
   .icon {
-    font-size: 40px;
-    margin-bottom: 12px;
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
   }
   .title {
-    margin: 0 0 8px;
+    margin: 0;
     font-size: 17px;
     font-weight: 800;
     color: #1a365d;

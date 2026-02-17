@@ -1,5 +1,6 @@
 <script>
   import Modal from "$lib/components/Modal.svelte";
+  import rentalHeroImage from "$lib/assets/pickleball-man-with-paddle.svg";
   import { auth } from "$lib/stores/auth.js";
   import { refreshTrigger, successOpen, successMessage } from "$lib/stores/reservation.js";
   import { parseApiErrorResponse } from "$lib/utils/apiError.js";
@@ -195,8 +196,10 @@
 <Modal open={open} onclose={onclose}>
   {#snippet children()}
     <div class="body">
-      <div class="icon">🏟️</div>
-      <h3 class="title">대관 신청</h3>
+      <div class="modal-header">
+        <img class="icon" src={rentalHeroImage} alt="피클볼 패들을 든 남성" />
+        <h3 class="title">대관 신청</h3>
+      </div>
 
       <div class="form">
         <label class="pb-field">
@@ -260,8 +263,15 @@
 
 <style>
   .body { text-align: center; }
-  .icon { font-size: 40px; margin-bottom: 10px; }
-  .title { margin: 0 0 12px; font-size: 18px; font-weight: 800; color: #1a365d; }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .icon { width: 60px; height: 60px; object-fit: contain; }
+  .title { margin: 0; font-size: 18px; font-weight: 800; color: #1a365d; }
 
   .form {
     background: #f7fafc;

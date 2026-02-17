@@ -1,0 +1,39 @@
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Man holding pickleball paddle">
+  <defs>
+    <linearGradient id="shirtGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2b6cb0"/>
+      <stop offset="100%" stop-color="#1a365d"/>
+    </linearGradient>
+    <linearGradient id="paddleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a5568"/>
+      <stop offset="100%" stop-color="#2d3748"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="60" cy="22" r="10" fill="#f6c89f"/>
+  <path d="M50 17c2-8 18-8 20 0v3H50z" fill="#1f2937"/>
+
+  <rect x="42" y="35" width="36" height="34" rx="10" fill="url(#shirtGrad)"/>
+  <rect x="50" y="69" width="8" height="24" rx="4" fill="#334155"/>
+  <rect x="62" y="69" width="8" height="24" rx="4" fill="#334155"/>
+  <rect x="48" y="93" width="12" height="6" rx="3" fill="#111827"/>
+  <rect x="60" y="93" width="12" height="6" rx="3" fill="#111827"/>
+
+  <rect x="78" y="40" width="7" height="24" rx="3.5" transform="rotate(15 78 40)" fill="#f6c89f"/>
+  <ellipse cx="95" cy="38" rx="12" ry="15" transform="rotate(15 95 38)" fill="url(#paddleGrad)"/>
+  <circle cx="90" cy="33" r="1.8" fill="#cbd5e1"/>
+  <circle cx="98" cy="32" r="1.8" fill="#cbd5e1"/>
+  <circle cx="92" cy="40" r="1.8" fill="#cbd5e1"/>
+  <circle cx="100" cy="40" r="1.8" fill="#cbd5e1"/>
+  <rect x="84" y="51" width="4.5" height="16" rx="2.2" transform="rotate(15 84 51)" fill="#8b5e3c"/>
+
+  <rect x="34" y="40" width="7" height="20" rx="3.5" transform="rotate(-20 34 40)" fill="#f6c89f"/>
+  <circle cx="26" cy="55" r="6" fill="#f6c89f"/>
+
+  <circle cx="22" cy="89" r="7" fill="#f6ad55"/>
+  <circle cx="22" cy="89" r="1.2" fill="#fffaf0"/>
+  <circle cx="19.3" cy="86.7" r="1.1" fill="#fffaf0"/>
+  <circle cx="24.7" cy="86.7" r="1.1" fill="#fffaf0"/>
+  <circle cx="19.3" cy="91.3" r="1.1" fill="#fffaf0"/>
+  <circle cx="24.7" cy="91.3" r="1.1" fill="#fffaf0"/>
+</svg>
