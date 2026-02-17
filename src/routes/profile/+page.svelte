@@ -3,6 +3,7 @@
     import { goto } from "$app/navigation";
     import { auth } from "$lib/stores/auth.js";
     import SiteHeader from "$lib/components/SiteHeader.svelte";
+    import { parseApiErrorResponse } from "$lib/utils/apiError.js";
 
     let profile = null;
     let formData = {};
@@ -10,6 +11,15 @@
     let saving = false;
     let error = "";
     let successMsg = "";
+    let showPasswordModal = false;
+    let passwordChanging = false;
+    let passwordError = "";
+    let passwordSuccess = "";
+    let passwordForm = {
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+    };
 
     onMount(() => {
         auth.refresh();
@@ -116,6 +126,64 @@
         goto("/login");
     }
 
+    function openPasswordModal() {
+        showPasswordModal = true;
+        passwordError = "";
+        passwordSuccess = "";
+        passwordForm = {
+            currentPassword: "",
+            newPassword: "",
+            confirmPassword: "",
+        };
+    }
+
+    function closePasswordModal() {
+        if (passwordChanging) return;
+        showPasswordModal = false;
+    }
+
+    async function handleChangePassword() {
+        passwordError = "";
+        passwordSuccess = "";
+        if (
+            !passwordForm.currentPassword.trim() ||
+            !passwordForm.newPassword.trim() ||
+            !passwordForm.confirmPassword.trim()
+        ) {
+            passwordError = "현재 비밀번호/새 비밀번호/확인 비밀번호를 모두 입력해주세요.";
+            return;
+        }
+
+        passwordChanging = true;
+        try {
+            const res = await fetch("/api/v1/members/me/password", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${getToken()}`,
+                },
+                body: JSON.stringify(passwordForm),
+            });
+
+            if (res.status === 401 || res.status === 403) {
+                auth.logout();
+                goto("/login");
+                return;
+            }
+            if (!res.ok) {
+                const apiError = await parseApiErrorResponse(res);
+                throw new Error(apiError.message || "비밀번호 변경에 실패했습니다.");
+            }
+
+            passwordSuccess = "비밀번호가 변경되었습니다.";
+            setTimeout(() => closePasswordModal(), 700);
+        } catch (err) {
+            passwordError = err.message || "비밀번호 변경 중 오류가 발생했습니다.";
+        } finally {
+            passwordChanging = false;
+        }
+    }
+
     const gameLevels = ["입문", "초급", "중급", "중상급", "상급"];
 </script>
 
@@ -127,7 +195,7 @@
     <SiteHeader title="회원정보 수정" brandHref="/" hasNav={true}>
         <span class="pb-user-pill user-greeting">
             <span class="user-icon">👤</span>
-            <span class="user-name">{$auth.name || $auth.username}</span>님
+            <span class="user-name">{$auth?.name || $auth?.username || ""}</span>님
         </span>
         <button class="pb-btn-ghost nav-link logout-btn" on:click={handleLogout}>
           로그아웃
@@ -311,6 +379,13 @@
                             on:click={goHome}>취소</button
                         >
                         <button
+                            type="button"
+                            class="pwd-btn"
+                            on:click={openPasswordModal}
+                        >
+                            비밀번호 변경
+                        </button>
+                        <button
                             type="submit"
                             class="save-btn"
                             disabled={saving}
@@ -323,6 +398,87 @@
         {/if}
     </main>
 </div>
+
+{#if showPasswordModal}
+    <div
+        class="modal-overlay"
+        role="button"
+        tabindex="0"
+        on:click={closePasswordModal}
+        on:keydown={(e) => e.key === "Escape" && closePasswordModal()}
+    >
+        <div
+            class="password-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="password-change-title"
+            tabindex="0"
+            on:click|stopPropagation
+            on:keydown|stopPropagation
+        >
+            <h3 id="password-change-title" class="modal-title">비밀번호 변경</h3>
+
+            {#if passwordError}
+                <div class="error-msg modal-msg">⚠️ {passwordError}</div>
+            {/if}
+            {#if passwordSuccess}
+                <div class="success-msg modal-msg">✅ {passwordSuccess}</div>
+            {/if}
+
+            <div class="field-group">
+                <label class="field-label" for="currentPassword">현재 비밀번호</label>
+                <input
+                    id="currentPassword"
+                    type="password"
+                    class="field-input"
+                    bind:value={passwordForm.currentPassword}
+                    autocomplete="current-password"
+                />
+            </div>
+
+            <div class="field-group">
+                <label class="field-label" for="newPassword">새 비밀번호</label>
+                <input
+                    id="newPassword"
+                    type="password"
+                    class="field-input"
+                    bind:value={passwordForm.newPassword}
+                    autocomplete="new-password"
+                />
+            </div>
+
+            <div class="field-group">
+                <label class="field-label" for="confirmPassword">새 비밀번호 확인</label>
+                <input
+                    id="confirmPassword"
+                    type="password"
+                    class="field-input"
+                    bind:value={passwordForm.confirmPassword}
+                    autocomplete="new-password"
+                />
+            </div>
+
+            <div class="modal-actions">
+                <button
+                    type="button"
+                    class="save-btn"
+                    on:click={handleChangePassword}
+                    disabled={passwordChanging}
+                >
+                    {passwordChanging ? "변경 중..." : "변경 저장"}
+                </button>
+                <button
+                    type="button"
+                    class="cancel-btn"
+                    on:click={closePasswordModal}
+                    disabled={passwordChanging}
+                >
+                    닫기
+                </button>
+            </div>
+        </div>
+    </div>
+{/if}
 
 <style>
     .page {
@@ -513,11 +669,62 @@
         opacity: 0.6;
         cursor: not-allowed;
     }
+    .pwd-btn {
+        padding: 12px 22px;
+        background: #2d3748;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 700;
+        font-family: inherit;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .pwd-btn:hover {
+        background: #1a202c;
+        transform: translateY(-1px);
+    }
 
     .loading {
         text-align: center;
         padding: 48px 16px;
         color: #718096;
         font-size: 15px;
+    }
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(15, 23, 42, 0.5);
+        z-index: 1000;
+        padding: 16px;
+    }
+    .password-modal {
+        width: min(460px, 100%);
+        background: #fff;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 18px 34px rgba(15, 23, 42, 0.28);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .modal-title {
+        margin: 0 0 4px;
+        font-size: 18px;
+        font-weight: 800;
+        color: #1a365d;
+    }
+    .modal-msg {
+        margin-bottom: 0;
+    }
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 8px;
     }
 </style>

@@ -624,7 +624,7 @@ function handleAddSlot() {
                 </select>
             </div>
             <div class="control-group">
-                <label for="dateSelect" class="pb-label label">날짜 선택</label>
+                <label for="dateSelect" class="pb-label label">운동일자</label>
                 <input
                     id="dateSelect"
                     type="date"

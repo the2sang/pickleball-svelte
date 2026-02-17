@@ -8,6 +8,7 @@
     getReservationCounts,
     isCancelDeadlinePassed,
     isGeneralMember,
+    isPastSlot,
   } from '$lib/utils/reservationPolicy.js';
   import { parseApiErrorResponse } from '$lib/utils/apiError.js';
 
@@ -69,10 +70,13 @@
   const status = $derived(String($modalData?.reservation?.status ?? '').trim().toUpperCase());
   const scheduleType = $derived(String($modalData?.reservation?.scheduleType ?? '').trim().toUpperCase());
   const isClosed = $derived(status === 'CLOSED');
+  const isPast = $derived(
+    !$modalData ? false : isPastSlot($modalData.timeSlot, $selectedDate)
+  );
   const isRental = $derived(scheduleType === 'RENTAL');
   const isRentalRestricted = $derived(isRental && isGeneralMember($auth?.accountType));
   const isWaitingFull = $derived(counts.isWaitingFull);
-  const canReserve = $derived(!isClosed && !isRentalRestricted && !isWaitingFull);
+  const canReserve = $derived(!isClosed && !isPast && !isRentalRestricted && !isWaitingFull);
   const autoClose = $derived(!!$modalData?.shouldAutoClose);
 
   const cancelDeadlinePassed = $derived(
@@ -208,7 +212,7 @@
               예약 취소하기
             {/if}
           </button>
-        {:else if isClosed}
+        {:else if isClosed || isPast}
           <button class="pb-btn-ghost btn-disabled" disabled>마감</button>
         {:else if isRentalRestricted}
           <button class="pb-btn-ghost btn-disabled" disabled>일반 예약 불가</button>

@@ -17,7 +17,6 @@
   let loading = false;
   let selectedCourtId = null;
   let showLoginPrompt = false;
-  let showClosedPrompt = false;
   let rentalOpen = false;
 
   $: if ($selectedDate && $filteredCourts && $filteredCourts.length > 0 && $refreshTrigger >= 0) {
@@ -30,6 +29,13 @@
 
   $: selectedCourt = $filteredCourts?.find(c => c.id === selectedCourtId);
   $: selectedCourtSlots = selectedCourtId ? courtSlotsMap[selectedCourtId] : null;
+  $: partnerName = $partnerInfo?.businessPartner || $partnerInfo?.name || "";
+  $: courtTitle =
+    selectedCourtSlots && selectedCourtSlots.courtName
+      ? selectedCourtSlots.courtName
+      : (selectedCourt?.courtName || selectedCourt?.name || '코트');
+  $: courtTitleWithPartner =
+    partnerName ? `${partnerName} / ${courtTitle}` : courtTitle;
 
   async function loadSlots() {
     loading = true;
@@ -77,12 +83,6 @@
       return;
     }
 
-    // 현재 시간이 지난 시간대인지 확인
-    if (isPastSlot(timeSlot, $selectedDate)) {
-      showClosedPrompt = true;
-      return;
-    }
-
     modalData.set({
       court: selectedCourt,
       timeSlot,
@@ -109,6 +109,10 @@
 
   function getStatusStyle(info, timeSlot) {
     if (!info) return { bg: "#f7fafc", color: "#cbd5e0", opacity: 0.5 }; // No slot
+
+    if (info.scheduleType === "RENTAL") {
+      return { bg: "#87CEEB", color: "#0c4a6e", opacity: 1 };
+    }
 
     // 현재 시간이 지난 시간대는 마감 처리
     if (timeSlot && isPastSlot(timeSlot, $selectedDate)) {
@@ -145,8 +149,8 @@
     );
 
     if (counts.isFull) return "마감";
-    if (counts.total > 0) return "일부예약";
-    return "예약접수";
+    if (counts.total > 0) return "접수 진행 중";
+    return "참가접수";
   }
 
   function getScheduleTypeLabel(scheduleType) {
@@ -155,7 +159,7 @@
     return "";
   }
 
-  // 시간대 포맷팅: "06:00~09:00" → "오전6시~9시(3시간)"
+  // 시간대 포맷팅: "06:00~09:00" → "AM6~PM12(6H)"
   function formatTimeSlot(timeSlot) {
     try {
       const [startStr, endStr] = timeSlot.split('~').map(s => s.trim());
@@ -163,17 +167,17 @@
       const [endHour, endMin] = endStr.split(':').map(Number);
 
       // 오전/오후 구분
-      const startPeriod = startHour < 12 ? '오전' : '오후';
-      const endPeriod = endHour < 12 ? '오전' : '오후';
+      const startPeriod = startHour < 12 ? 'AM' : 'PM';
+      const endPeriod = endHour < 12 ? 'AM' : 'PM';
 
       // 12시간 형식 변환
       const startHour12 = startHour === 0 ? 12 : (startHour > 12 ? startHour - 12 : startHour);
       const endHour12 = endHour === 0 ? 12 : (endHour > 12 ? endHour - 12 : endHour);
 
-      // 시간 포맷 (분이 00이면 생략, 앞자리 0 제거)
+      // 간결 형식 (분은 00이면 생략)
       const formatTime = (hour, min, showPeriod = true, period = '') => {
-        const minStr = min > 0 ? `${min}분` : '';
-        return `${showPeriod ? period : ''}${hour}시${minStr}`;
+        const minStr = min > 0 ? `:${String(min).padStart(2, "0")}` : '';
+        return `${showPeriod ? period : ''}${hour}${minStr}`;
       };
 
       const startTimeStr = formatTime(startHour12, startMin, true, startPeriod);
@@ -185,8 +189,8 @@
       const minutes = totalMinutes % 60;
 
       const durationStr = minutes > 0
-        ? `${hours}시간${minutes}분`
-        : `${hours}시간`;
+        ? `${hours}H${minutes}M`
+        : `${hours}H`;
 
       return `${startTimeStr}~${endTimeStr}(${durationStr})`;
     } catch (e) {
@@ -199,7 +203,7 @@
 <div class="pb-card card slide-up">
   <div class="step-header">
     <span class="step-number">3</span>
-    <span class="step-title">시간대별 게임 현황</span>
+    <span class="step-title">참가신청 - 코트선택 후 시간대를 확인하세요</span>
     {#if loading}
       <span class="loading-text">불러오는 중...</span>
     {/if}
@@ -207,10 +211,10 @@
 
   <div class="legend">
     <span class="legend-item"
-      ><span class="dot" style="background:#E8F5E9"></span> 예약접수</span
+      ><span class="dot" style="background:#E8F5E9"></span> 참가접수</span
     >
     <span class="legend-item"
-      ><span class="dot" style="background:#FFF3E0"></span> 일부예약</span
+      ><span class="dot" style="background:#FFF3E0"></span> 접수 진행 중</span
     >
     <span class="legend-item"
       ><span class="dot" style="background:#FFEBEE"></span> 마감</span
@@ -234,16 +238,18 @@
         </button>
       {/each}
     </div>
-    {#if $auth && $auth.accountType !== 'PARTNER'}
-      <button class="rental-btn" on:click={openRentalRequest}>대관신청</button>
-    {/if}
   </div>
 
   <!-- Court Content -->
   {#if selectedCourt && selectedCourtSlots}
     <div class="court-content">
       <div class="court-info">
-        <h3 class="court-title">{selectedCourtSlots.courtName || selectedCourt.courtName || selectedCourt.name || '코트'}</h3>
+        <div class="court-title-row">
+          <h3 class="court-title">{courtTitleWithPartner}</h3>
+          {#if $auth && $auth.accountType !== 'PARTNER'}
+            <button class="rental-btn rental-btn-inline" on:click={openRentalRequest}>대관신청</button>
+          {/if}
+        </div>
         <div class="court-details">
           <span>정원: {selectedCourtSlots.personnelNumber}명</span>
           <LevelBadge level={selectedCourtSlots.courtLevel || selectedCourt.courtLevel || selectedCourt.level} />
@@ -312,7 +318,6 @@
                     class="pb-btn-ghost player-view-btn"
                     aria-label="신청자 보기"
                     type="button"
-                    disabled={slotInfo.status === "CLOSED" || isPast}
                     on:click={() => openApplicants(slotInfo.timeSlot, slotInfo)}
                   >
                     <span class="people-icon" aria-hidden="true">👤</span>
@@ -361,36 +366,6 @@
         <a href="/signup" class="login-modal-btn secondary">회원가입</a>
       </div>
       <button class="login-modal-close" on:click={() => (showLoginPrompt = false)}>닫기</button>
-    </div>
-  </div>
-{/if}
-
-<!-- Closed Prompt Modal -->
-{#if showClosedPrompt}
-  <div
-    class="login-overlay"
-    role="button"
-    tabindex="0"
-    on:click={() => (showClosedPrompt = false)}
-    on:keydown={(e) => e.key === "Escape" && (showClosedPrompt = false)}
-  >
-    <div
-      class="login-modal"
-      role="dialog"
-      tabindex="0"
-      aria-labelledby="closed-prompt-title"
-      on:click|stopPropagation
-      on:keydown|stopPropagation
-    >
-      <div class="login-modal-icon">⏰</div>
-      <h3 id="closed-prompt-title" class="login-modal-title">예약 마감되었습니다</h3>
-      <p class="login-modal-msg">
-        해당 시간대는 이미 지나 예약이 불가능합니다.<br />
-        다른 시간대를 선택해주세요.
-      </p>
-      <div class="login-modal-actions">
-        <button class="login-modal-btn primary" on:click={() => (showClosedPrompt = false)}>확인</button>
-      </div>
     </div>
   </div>
 {/if}
@@ -475,7 +450,7 @@
 
   .rental-btn {
     flex-shrink: 0;
-    padding: 12px 14px;
+    padding: 4px 14px;
     border-radius: 10px;
     border: none;
     background: linear-gradient(135deg, #1a365d, #2a4a7f);
@@ -538,6 +513,11 @@
     font-size: 18px;
     font-weight: 700;
     color: #1a365d;
+  }
+  .court-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
   .court-details {
     display: flex;

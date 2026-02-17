@@ -2,6 +2,7 @@
     import { goto } from "$app/navigation";
     import { auth } from "$lib/stores/auth.js";
     import SiteHeader from "$lib/components/SiteHeader.svelte";
+    import { parseApiErrorResponse } from "$lib/utils/apiError.js";
 
     const quickAccounts = [
         { label: "파트너 - admin1", username: "admin1", role: "PARTNER" },
@@ -47,12 +48,22 @@
     };
 
     let loginError = "";
+    let loginErrorCode = "";
     let loading = false;
+    let showFindIdModal = false;
+    let showResetPasswordModal = false;
+    let showResetLink = false;
+    let modalLoading = false;
+    let modalMessage = "";
+    let modalError = "";
+    let findIdEmail = "";
+    let resetEmail = "";
 
     function validateForm() {
         let isValid = true;
         errors = { username: "", password: "" };
         loginError = "";
+        loginErrorCode = "";
 
         if (!formData.username.trim()) {
             errors.username = "아이디를 입력해주세요";
@@ -95,6 +106,7 @@
 
         loading = true;
         loginError = "";
+        loginErrorCode = "";
 
         try {
             const response = await fetch("/api/v1/auth/login", {
@@ -107,15 +119,9 @@
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => null);
-                if (errorData && errorData.message) {
-                    loginError = errorData.message;
-                } else if (response.status === 401) {
-                    loginError = "아이디 또는 비밀번호가 올바르지 않습니다.";
-                } else {
-                    loginError =
-                        "로그인 중 오류가 발생했습니다. 다시 시도해주세요.";
-                }
+                const apiError = await parseApiErrorResponse(response);
+                loginError = apiError.message || "로그인 중 오류가 발생했습니다. 다시 시도해주세요.";
+                loginErrorCode = apiError.code || "";
                 loading = false;
                 return;
             }
@@ -136,9 +142,90 @@
             }
         } catch (err) {
             loginError = "서버에 연결할 수 없습니다. 네트워크를 확인해주세요.";
+            loginErrorCode = "";
             loading = false;
         }
     }
+
+    async function submitFindId() {
+        modalLoading = true;
+        modalMessage = "";
+        modalError = "";
+
+        try {
+            const response = await fetch("/api/v1/auth/find-id", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: findIdEmail }),
+            });
+
+            if (!response.ok) {
+                const apiError = await parseApiErrorResponse(response);
+                modalError = apiError.message;
+                return;
+            }
+
+            const data = await response.json();
+            modalMessage = data?.message || "등록된 이메일로 아이디 안내 메일을 발송했습니다.";
+        } catch (err) {
+            modalError = "서버에 연결할 수 없습니다. 네트워크를 확인해주세요.";
+        } finally {
+            modalLoading = false;
+        }
+    }
+
+    async function submitResetPassword() {
+        modalLoading = true;
+        modalMessage = "";
+        modalError = "";
+
+        try {
+            const response = await fetch("/api/v1/auth/reset-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    username: formData.username,
+                    email: resetEmail,
+                }),
+            });
+
+            if (!response.ok) {
+                const apiError = await parseApiErrorResponse(response);
+                modalError = apiError.message;
+                return;
+            }
+
+            const data = await response.json();
+            modalMessage = data?.message || "등록된 이메일로 초기화된 비밀번호를 발송했습니다.";
+        } catch (err) {
+            modalError = "서버에 연결할 수 없습니다. 네트워크를 확인해주세요.";
+        } finally {
+            modalLoading = false;
+        }
+    }
+
+    function openFindIdModal() {
+        showFindIdModal = true;
+        showResetPasswordModal = false;
+        modalMessage = "";
+        modalError = "";
+    }
+
+    function openResetPasswordModal() {
+        showResetPasswordModal = true;
+        showFindIdModal = false;
+        modalMessage = "";
+        modalError = "";
+    }
+
+    function closeModal() {
+        showFindIdModal = false;
+        showResetPasswordModal = false;
+        modalMessage = "";
+        modalError = "";
+    }
+
+    $: showResetLink = loginErrorCode === "LOGIN_HELP_SENT_PASSWORD";
 
     function goBack() {
         goto("/");
@@ -254,11 +341,91 @@
                 <div class="signup-prompt">
                     아직 회원이 아니신가요?
                     <a href="/signup" class="signup-anchor">회원가입</a>
+                    <span class="link-divider">|</span>
+                    <button type="button" class="inline-link" on:click={openFindIdModal}>ID 찾기</button>
+                    {#if showResetLink}
+                        <span class="link-divider">|</span>
+                        <button
+                            type="button"
+                            class="inline-link"
+                            on:click={openResetPasswordModal}
+                        >
+                            패스워드 초기화
+                        </button>
+                    {/if}
                 </div>
             </form>
         </div>
     </main>
 </div>
+
+{#if showFindIdModal || showResetPasswordModal}
+    <div
+        class="modal-overlay"
+        role="button"
+        tabindex="0"
+        on:click={closeModal}
+        on:keydown={(e) => e.key === "Escape" && closeModal()}
+    >
+        <div
+            class="simple-modal"
+            role="dialog"
+            aria-modal="true"
+            tabindex="0"
+            on:click|stopPropagation
+            on:keydown|stopPropagation
+        >
+            <h3 class="modal-title">{showFindIdModal ? "ID 찾기" : "패스워드 초기화"}</h3>
+
+            {#if showFindIdModal}
+                <label class="label" for="find-id-email">가입 이메일</label>
+                <input
+                    id="find-id-email"
+                    type="email"
+                    class="input"
+                    bind:value={findIdEmail}
+                    placeholder="회원가입시 등록한 이메일을 입력하세요"
+                />
+            {:else}
+                <label class="label" for="reset-username">아이디</label>
+                <input
+                    id="reset-username"
+                    type="text"
+                    class="input"
+                    value={formData.username}
+                    readonly
+                />
+                <label class="label" for="reset-email">가입 이메일</label>
+                <input
+                    id="reset-email"
+                    type="email"
+                    class="input"
+                    bind:value={resetEmail}
+                    placeholder="회원가입시 등록한 이메일을 입력하세요"
+                />
+            {/if}
+
+            {#if modalError}
+                <div class="login-error modal-msg">{modalError}</div>
+            {/if}
+            {#if modalMessage}
+                <div class="modal-success modal-msg">{modalMessage}</div>
+            {/if}
+
+            <div class="button-group modal-actions">
+                <button
+                    type="button"
+                    class="btn btn-primary"
+                    on:click={showFindIdModal ? submitFindId : submitResetPassword}
+                    disabled={modalLoading}
+                >
+                    {modalLoading ? "처리 중..." : "메일 발송"}
+                </button>
+                <button type="button" class="btn btn-secondary" on:click={closeModal}>닫기</button>
+            </div>
+        </div>
+    </div>
+{/if}
 
 <style>
   .page {
@@ -430,6 +597,72 @@
 
     .signup-anchor:hover {
         text-decoration: underline;
+    }
+
+    .link-divider {
+        margin: 0 6px;
+        color: #a0aec0;
+    }
+
+    .inline-link {
+        border: 0;
+        background: transparent;
+        color: #1a365d;
+        font-weight: 700;
+        cursor: pointer;
+        padding: 0;
+        font-size: 13px;
+    }
+
+    .inline-link:hover {
+        text-decoration: underline;
+    }
+
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 16px;
+    }
+
+    .simple-modal {
+        width: min(480px, 100%);
+        background: #fff;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 18px 32px rgba(15, 23, 42, 0.24);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .modal-title {
+        margin: 0 0 6px 0;
+        color: #1a365d;
+        font-size: 18px;
+        font-weight: 800;
+    }
+
+    .modal-msg {
+        margin-top: 2px;
+    }
+
+    .modal-success {
+        padding: 14px 16px;
+        border-radius: 8px;
+        border: 1px solid #9ae6b4;
+        background: #f0fff4;
+        color: #276749;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .modal-actions {
+        margin-top: 8px;
     }
 
     @keyframes fadeIn {
