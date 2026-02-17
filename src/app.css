@@ -122,6 +122,19 @@
 
   .pb-btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-extrabold text-[13px] transition;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .pb-btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    transition: transform 0.22s ease, opacity 0.22s ease;
+    opacity: 0;
+    transform: scaleX(0.2);
+    transform-origin: left;
   }
 
   .pb-btn-primary {
@@ -130,11 +143,49 @@
   }
 
   .pb-btn-primary:hover {
-    transform: translateY(-1px);
+    --pb-hover-overlay: rgba(255, 255, 255, 0.22);
+  }
+
+  .pb-btn-primary:hover::after {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+
+  .pb-btn-primary::after {
+    background: var(--pb-hover-overlay, rgba(255, 255, 255, 0.14));
+    transform: scaleX(0);
+  }
+
+  .pb-btn-primary:active {
+    transform: translateY(0);
   }
 
   .pb-btn-ghost {
     @apply pb-btn bg-white border border-pb-border text-pb-muted;
+  }
+
+  .pb-btn-ghost:hover::after {
+    opacity: 1;
+    transform: scaleX(1);
+    background: rgba(20, 184, 166, 0.12);
+  }
+
+  .pb-btn-success::after {
+    background: rgba(255, 255, 255, 0.16);
+  }
+
+  .pb-btn-success:hover::after {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+
+  .pb-btn-danger::after {
+    background: rgba(255, 255, 255, 0.16);
+  }
+
+  .pb-btn-danger:hover::after {
+    opacity: 1;
+    transform: scaleX(1);
   }
 
   .pb-btn-success {
