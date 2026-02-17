@@ -415,7 +415,7 @@
 <div class="page">
     <!-- Header -->
    <SiteHeader
-      title="라켓들고 LesGO! - 회원가입"
+      title="패들들고 LesGO! - 회원가입"
      hasNav={false}
      brandHref="/"
    />

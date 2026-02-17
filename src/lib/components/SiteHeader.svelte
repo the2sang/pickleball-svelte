@@ -1,6 +1,6 @@
 <script>
   let {
-    title = "라켓들고 LesGO!",
+    title = "패들들고 LesGO!",
     brandHref = "/",
     hasNav = true,
     navClass = "pb-nav nav-links",

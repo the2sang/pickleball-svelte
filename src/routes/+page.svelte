@@ -27,7 +27,7 @@
 
 <div class="pb-shell page">
   <!-- Header -->
-  <SiteHeader title="라켓들고 LesGO!">
+  <SiteHeader title="패들들고 LesGO!">
     {#if $auth}
       <span class="pb-user-pill user-greeting">
         <span class="user-icon">👤</span>
