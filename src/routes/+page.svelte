@@ -22,7 +22,7 @@
 </script>
 
 <svelte:head>
-  <title>LESGO</title>
+  <title>LesGO</title>
 </svelte:head>
 
 <div class="pb-shell page">
