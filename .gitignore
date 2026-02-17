@@ -9,6 +9,8 @@ build/
 .env
 .env.*
 !.env.example
+!.env.development.example
+!.env.production.example
 
 # IDE
 .idea/
