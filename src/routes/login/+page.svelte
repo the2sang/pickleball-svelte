@@ -49,6 +49,11 @@
 
     let loginError = "";
     let loading = false;
+    let showResetForm = false;
+    let resetEmail = "";
+    let resetLoading = false;
+    let resetMessage = "";
+    let resetError = "";
 
     function validateForm() {
         let isValid = true;
@@ -96,6 +101,8 @@
 
         loading = true;
         loginError = "";
+        resetMessage = "";
+        resetError = "";
 
         try {
             const response = await fetch(buildApiUrl("/api/v1/auth/login"), {
@@ -143,6 +150,50 @@
 
     function goBack() {
         goto("/");
+    }
+
+    function toggleResetForm() {
+        showResetForm = !showResetForm;
+        resetMessage = "";
+        resetError = "";
+    }
+
+    async function handleResetPassword(e) {
+        e.preventDefault();
+        resetMessage = "";
+        resetError = "";
+
+        const email = resetEmail.trim();
+        if (!email) {
+            resetError = "이메일을 입력해주세요.";
+            return;
+        }
+
+        resetLoading = true;
+        try {
+            const response = await fetch(buildApiUrl("/api/v1/auth/password/reset"), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => null);
+                if (errorData?.message) {
+                    resetError = errorData.message;
+                } else {
+                    resetError = "비밀번호 초기화 요청 중 오류가 발생했습니다.";
+                }
+                return;
+            }
+
+            const data = await response.json().catch(() => null);
+            resetMessage = data?.message || "입력하신 이메일로 임시 비밀번호를 발송했습니다.";
+        } catch (err) {
+            resetError = "서버에 연결할 수 없습니다. 네트워크를 확인해주세요.";
+        } finally {
+            resetLoading = false;
+        }
     }
 </script>
 
@@ -255,7 +306,48 @@
                 <div class="signup-prompt">
                     아직 회원이 아니신가요?
                     <a href="/signup" class="signup-anchor">회원가입</a>
+                    {#if loginError}
+                        <span class="prompt-divider">|</span>
+                        <button
+                            type="button"
+                            class="forgot-anchor"
+                            on:click={toggleResetForm}
+                        >
+                            {showResetForm ? "닫기" : "비밀번호 찾기"}
+                        </button>
+                    {/if}
                 </div>
+
+                {#if loginError && showResetForm}
+                    <div class="reset-panel">
+                        <label for="resetEmail" class="reset-label">등록된 이메일 입력</label>
+                        <div class="reset-row">
+                            <input
+                                id="resetEmail"
+                                type="email"
+                                class="input reset-input"
+                                bind:value={resetEmail}
+                                placeholder="example@email.com"
+                                autocomplete="email"
+                            />
+                            <button
+                                type="button"
+                                class="reset-btn"
+                                on:click={handleResetPassword}
+                                disabled={resetLoading}
+                            >
+                                {resetLoading ? "발송 중..." : "임시 비밀번호 발송"}
+                            </button>
+                        </div>
+                        {#if resetMessage}
+                            <div class="reset-success">✅ {resetMessage}</div>
+                        {/if}
+                        {#if resetError}
+                            <div class="reset-error">⚠️ {resetError}</div>
+                        {/if}
+                    </div>
+                {/if}
+
                 <div class="signup-prompt">
                     테스트 계정 로그인이 필요하신가요?
                     <a href="/login/test" class="signup-anchor">테스트 로그인</a>
@@ -433,6 +525,87 @@
         margin-left: 4px;
     }
 
+    .prompt-divider {
+        margin: 0 6px;
+        color: #a0aec0;
+    }
+
+    .forgot-anchor {
+        border: none;
+        background: none;
+        color: #1a365d;
+        font-size: 13px;
+        font-weight: 700;
+        font-family: inherit;
+        cursor: pointer;
+        text-decoration: none;
+        padding: 0;
+    }
+
+    .forgot-anchor:hover {
+        text-decoration: underline;
+    }
+
+    .reset-panel {
+        margin-top: -8px;
+        padding: 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        background: #f8fafc;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .reset-label {
+        font-size: 12px;
+        color: #4a5568;
+        font-weight: 600;
+    }
+
+    .reset-row {
+        display: flex;
+        gap: 8px;
+    }
+
+    .reset-input {
+        flex: 1;
+        padding: 11px 12px;
+        font-size: 14px;
+    }
+
+    .reset-btn {
+        white-space: nowrap;
+        border: none;
+        border-radius: 8px;
+        background: #2b6cb0;
+        color: #fff;
+        font-weight: 700;
+        font-size: 13px;
+        padding: 0 14px;
+        font-family: inherit;
+        cursor: pointer;
+    }
+
+    .reset-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .reset-success,
+    .reset-error {
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .reset-success {
+        color: #2f855a;
+    }
+
+    .reset-error {
+        color: #c53030;
+    }
+
     .signup-anchor:hover {
         text-decoration: underline;
     }
@@ -455,6 +628,14 @@
 
         .button-group {
             flex-direction: column;
+        }
+
+        .reset-row {
+            flex-direction: column;
+        }
+
+        .reset-btn {
+            height: 40px;
         }
     }
 </style>
