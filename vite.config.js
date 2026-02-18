@@ -1,5 +1,5 @@
 import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 
 const normalizeApiBase = (raw) => {
   const value = (raw || "http://localhost:8080").trim();
@@ -8,17 +8,20 @@ const normalizeApiBase = (raw) => {
   return `http://${value}`;
 };
 
-const apiProxyTarget = normalizeApiBase(process.env.API_PROXY_TARGET || "http://localhost:8080");
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+  const apiProxyTarget = normalizeApiBase(env.API_PROXY_TARGET || "http://localhost:8080");
 
-export default defineConfig({
-  plugins: [sveltekit()],
-  server: {
-    proxy: {
-      '/api': {
-        target: apiProxyTarget,
-        changeOrigin: true,
-        secure: false,
+  return {
+    plugins: [sveltekit()],
+    server: {
+      proxy: {
+        '/api': {
+          target: apiProxyTarget,
+          changeOrigin: true,
+          secure: false,
+        },
       },
     },
-  },
+  };
 });
