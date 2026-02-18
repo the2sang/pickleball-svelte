@@ -95,7 +95,7 @@
 
       <div class="players-section">
         <div class="players-label">
-          확정 예약자 ({confirmedPlayers.length}/{capacity}명)
+          확정 예약자 ({confirmedPlayers.length}/{capacity})
         </div>
         {#if confirmedPlayers.length > 0}
           <div class="players-list">

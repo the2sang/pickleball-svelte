@@ -158,7 +158,7 @@
 
   function getScheduleTypeLabel(scheduleType) {
     if (scheduleType === "RENTAL") return "대관";
-    if (scheduleType === "OPEN_GAME") return "오픈게임";
+    if (scheduleType === "OPEN_GAME") return "오픈";
     return "";
   }
 
@@ -203,9 +203,17 @@
   <div class="step-header">
     <span class="step-number">3</span>
     <span class="step-title">참가 신청</span>
-    {#if loading}
-      <span class="loading-text">불러오는 중...</span>
+    {#if $partnerInfo}
+      <span class="partner-name-chip">{$partnerInfo.businessPartner || $partnerInfo.partnerName || $partnerInfo.name}</span>
     {/if}
+    <div class="header-actions">
+      {#if $auth && $auth.accountType !== 'PARTNER'}
+        <button class="rental-btn" on:click={openRentalRequest}>대관신청</button>
+      {/if}
+      {#if loading}
+        <span class="loading-text">불러오는 중...</span>
+      {/if}
+    </div>
   </div>
 
   <div class="legend">
@@ -237,9 +245,6 @@
         </button>
       {/each}
     </div>
-    {#if $auth && $auth.accountType !== 'PARTNER'}
-      <button class="rental-btn" on:click={openRentalRequest}>대관신청</button>
-    {/if}
   </div>
 
   <!-- Court Content -->
@@ -288,7 +293,7 @@
               {:else}
                 <div class="slot-info">
                   <div class="slot-count" style="color:{style.color}">
-                    {counts.total}/{counts.cap}명
+                    {counts.total}/{counts.cap}
                   </div>
                   <div class="slot-status" style="color:{style.color}">
                     {getStatusLabel(slotInfo, slotInfo.timeSlot)}
@@ -302,7 +307,7 @@
               <div class="hover-popup">
                 <div class="popup-header">
                   <span class="popup-time">⏰ {formatTimeSlot(slotInfo.timeSlot)}</span>
-                  <span class="popup-count">{slotInfo.reservedCount}/{slotInfo.capacity}명</span>
+                  <span class="popup-count">{slotInfo.reservedCount}/{slotInfo.capacity}</span>
                 </div>
                 {#if confirmedPlayers.length > 0}
                   <div class="popup-section confirmed">
@@ -441,6 +446,12 @@
     gap: 8px;
     margin-bottom: 6px;
   }
+  .header-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
   .step-number {
     width: 26px;
     height: 26px;
@@ -458,10 +469,22 @@
     font-size: 15px;
     color: #1a365d;
   }
+  .partner-name-chip {
+    font-size: 12px;
+    font-weight: 700;
+    color: #2b6cb0;
+    background: #ebf8ff;
+    border: 1px solid #bee3f8;
+    border-radius: 999px;
+    padding: 4px 10px;
+    max-width: 220px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .loading-text {
     font-size: 12px;
     color: #718096;
-    margin-left: auto;
   }
   .legend {
     display: flex;

@@ -337,7 +337,7 @@
             const removed = beforeCount - filteredSlots.length;
             if (removed > 0) {
                 alert(
-                    `승인된 대관 시간대와 겹치는 오픈게임 시간대 ${removed}개를 제외하고 저장합니다.`,
+                    `승인된 대관 시간대와 겹치는 오픈 시간대 ${removed}개를 제외하고 저장합니다.`,
                 );
             }
         }
@@ -677,7 +677,7 @@ function handleAddSlot() {
 
                 {#if timeSlots.length === 0}
                     <div class="empty-msg">
-                        아직 등록된 오픈게임 시간대가 없습니다. 아래 "시간대 추가" 버튼으로 등록해주세요.
+                        아직 등록된 오픈 시간대가 없습니다. 아래 "시간대 추가" 버튼으로 등록해주세요.
                     </div>
                 {:else}
                     {#each timeSlots as slot, i}
@@ -727,7 +727,7 @@ function handleAddSlot() {
                                     삭제
                                 </button>
                             </div>
-                            <div class="type-badge">오픈게임</div>
+                            <div class="type-badge">오픈</div>
                         </div>
                     {/each}
                 {/if}
