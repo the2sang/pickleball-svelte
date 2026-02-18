@@ -2,6 +2,7 @@
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
     import { auth } from "$lib/stores/auth.js";
+    import { buildApiUrl } from "$lib/api.js";
     import SiteHeader from "$lib/components/SiteHeader.svelte";
 
     let profile = null;
@@ -36,7 +37,7 @@
         loading = true;
         error = "";
         try {
-            const res = await fetch("/api/v1/members/me", {
+            const res = await fetch(buildApiUrl("/api/v1/members/me"), {
                 headers: { Authorization: `Bearer ${getToken()}` },
             });
             if (res.status === 401 || res.status === 403) {
@@ -77,7 +78,7 @@
         error = "";
         successMsg = "";
         try {
-            const res = await fetch("/api/v1/members/me", {
+            const res = await fetch(buildApiUrl("/api/v1/members/me"), {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",

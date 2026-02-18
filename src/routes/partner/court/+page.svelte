@@ -3,6 +3,7 @@
     import { goto } from "$app/navigation";
     import { page } from "$app/stores";
     import { auth } from "$lib/stores/auth.js";
+    import { buildApiUrl } from "$lib/api.js";
     import SiteHeader from "$lib/components/SiteHeader.svelte";
 
     let courts = [];
@@ -34,7 +35,7 @@
         loading = true;
         error = "";
         try {
-            const res = await fetch("/api/v1/partner-manage/courts", {
+            const res = await fetch(buildApiUrl("/api/v1/partner-manage/courts"), {
                 headers: { Authorization: `Bearer ${getToken()}` },
             });
             if (res.status === 401 || res.status === 403) {

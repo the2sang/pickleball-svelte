@@ -1,6 +1,7 @@
 <script>
     import { goto } from "$app/navigation";
     import { auth } from "$lib/stores/auth.js";
+    import { buildApiUrl } from "$lib/api.js";
     import SiteHeader from "$lib/components/SiteHeader.svelte";
     import Modal from "$lib/components/Modal.svelte";
     import { TERMS_CONTENT } from "$lib/data/terms.js";
@@ -161,7 +162,9 @@
 
         try {
             const response = await fetch(
-                `/api/v1/auth/username/check?username=${encodeURIComponent(value)}`,
+                buildApiUrl(
+                    `/api/v1/auth/username/check?username=${encodeURIComponent(value)}`
+                ),
                 { method: "GET" }
             );
 
@@ -356,7 +359,7 @@
         }
 
         try {
-            const response = await fetch(url, {
+            const response = await fetch(buildApiUrl(url), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),

@@ -2,6 +2,7 @@
   import Modal from "$lib/components/Modal.svelte";
   import { auth } from "$lib/stores/auth.js";
   import { refreshTrigger, successOpen, successMessage } from "$lib/stores/reservation.js";
+  import { buildApiUrl } from "$lib/api.js";
   import { parseApiErrorResponse } from "$lib/utils/apiError.js";
 
   let {
@@ -161,7 +162,7 @@
         timeName,
       };
 
-      const res = await fetch("/api/v1/rentals/requests", {
+      const res = await fetch(buildApiUrl("/api/v1/rentals/requests"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

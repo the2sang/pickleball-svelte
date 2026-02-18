@@ -1,6 +1,7 @@
 <script>
     import { goto } from "$app/navigation";
     import { auth } from "$lib/stores/auth.js";
+    import { buildApiUrl } from "$lib/api.js";
     import SiteHeader from "$lib/components/SiteHeader.svelte";
 
     const quickAccounts = [
@@ -97,7 +98,7 @@
         loginError = "";
 
         try {
-            const response = await fetch("/api/v1/auth/login", {
+            const response = await fetch(buildApiUrl("/api/v1/auth/login"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

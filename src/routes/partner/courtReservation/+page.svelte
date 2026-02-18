@@ -4,6 +4,7 @@
     import { page } from "$app/stores";
     import { auth } from "$lib/stores/auth.js";
     import SiteHeader from "$lib/components/SiteHeader.svelte";
+    import { buildApiUrl } from "$lib/api.js";
     import { parseApiErrorResponse } from "$lib/utils/apiError.js";
 
     let courts = [];
@@ -61,7 +62,7 @@
 
     async function fetchCourts() {
         try {
-            const res = await fetch("/api/v1/partner-manage/courts", {
+            const res = await fetch(buildApiUrl("/api/v1/partner-manage/courts"), {
                 headers: { Authorization: `Bearer ${getToken()}` },
             });
             if (!res.ok) throw new Error("코트 목록을 불러올 수 없습니다.");
@@ -105,7 +106,9 @@
         try {
             // 1. Get saved settings
             const res = await fetch(
-                `/api/v1/partner-manage/reservation/settings?courtId=${selectedCourtId}&date=${selectedDate}`,
+                buildApiUrl(
+                    `/api/v1/partner-manage/reservation/settings?courtId=${selectedCourtId}&date=${selectedDate}`,
+                ),
                 {
                     headers: { Authorization: `Bearer ${getToken()}` },
                 },
@@ -152,7 +155,9 @@
 
         try {
             const res = await fetch(
-                `/api/v1/partner-manage/rentals/requests?courtId=${selectedCourtId}&date=${selectedDate}&status=ALL`,
+                buildApiUrl(
+                    `/api/v1/partner-manage/rentals/requests?courtId=${selectedCourtId}&date=${selectedDate}&status=ALL`,
+                ),
                 {
                     headers: { Authorization: `Bearer ${getToken()}` },
                 },
@@ -202,7 +207,7 @@
         rentalError = "";
         try {
             const res = await fetch(
-                `/api/v1/partner-manage/rentals/requests/${id}/approve`,
+                buildApiUrl(`/api/v1/partner-manage/rentals/requests/${id}/approve`),
                 {
                     method: "POST",
                     headers: { Authorization: `Bearer ${getToken()}` },
@@ -227,7 +232,7 @@
         rentalError = "";
         try {
             const res = await fetch(
-                `/api/v1/partner-manage/rentals/requests/${id}/reject`,
+                buildApiUrl(`/api/v1/partner-manage/rentals/requests/${id}/reject`),
                 {
                     method: "POST",
                     headers: {
@@ -317,7 +322,7 @@
             };
 
             const res = await fetch(
-                "/api/v1/partner-manage/reservation/settings",
+                buildApiUrl("/api/v1/partner-manage/reservation/settings"),
                 {
                     method: "POST",
                     headers: {

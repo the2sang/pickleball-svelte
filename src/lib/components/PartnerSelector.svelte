@@ -5,6 +5,7 @@
     courts,
   } from "$lib/stores/reservation.js";
   import { auth } from "$lib/stores/auth.js";
+  import { buildApiUrl } from "$lib/api.js";
   import { onMount } from "svelte";
 
   let partners = [];
@@ -39,7 +40,7 @@
       if (keyword.trim()) {
         params.set("keyword", keyword.trim());
       }
-      const res = await fetch(`/api/v1/partners?${params}`, {
+      const res = await fetch(buildApiUrl(`/api/v1/partners?${params}`), {
         headers,
       });
         if (!res.ok) {
@@ -83,7 +84,7 @@
     }
 
     try {
-      const res = await fetch(`/api/v1/partners/${partnerId}/courts`, {
+      const res = await fetch(buildApiUrl(`/api/v1/partners/${partnerId}/courts`), {
         headers,
       });
       if (res.ok) {
