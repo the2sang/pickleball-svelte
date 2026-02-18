@@ -61,7 +61,7 @@
             partners = data.data;
             total = data.total;
         } catch (err) {
-            error = "사업장 목록을 불러올 수 없습니다.";
+            error = "사설클럽 목록을 불러올 수 없습니다.";
         } finally {
             loading = false;
         }
@@ -104,11 +104,13 @@
 </script>
 
 <svelte:head>
-    <title>사업장관리 - LESGO PiCKLE</title>
+    <title>사설클럽 관리 - LESGO PiCKLE</title>
 </svelte:head>
 
 <div class="pb-shell page">
-    <SiteHeader title="사업장관리" brandHref="/admin/partners" hasNav={true}>
+    <SiteHeader title="사설클럽 관리" brandHref="/admin/partners" hasNav={true}>
+        <a class="pb-btn-ghost nav-link" href="/admin/partners">사설클럽 관리</a>
+        <a class="pb-btn-ghost nav-link" href="/admin/circles">동호회 관리</a>
         <button class="pb-btn-ghost nav-link logout-btn" on:click={handleLogout}>
           로그아웃
         </button>
@@ -120,7 +122,7 @@
             <input
                 type="text"
                 class="search-input"
-                placeholder="사업장명 검색..."
+                placeholder="사설클럽명 검색..."
                 bind:value={keyword}
             />
             <button type="submit" class="search-btn">검색</button>
@@ -133,15 +135,15 @@
         {#if loading}
             <div class="loading">불러오는 중...</div>
         {:else if partners.length === 0}
-            <div class="empty">등록된 사업장이 없습니다.</div>
+            <div class="empty">등록된 사설클럽이 없습니다.</div>
         {:else}
             <div class="table-wrap">
                 <table class="partner-table">
                     <thead>
                         <tr>
-                            <th>No</th>
-                            <th>사업장명</th>
-                            <th>대표자</th>
+                             <th>No</th>
+                             <th>사설클럽명</th>
+                             <th>대표자</th>
                             <th>전화번호</th>
                             <th>주소</th>
                             <th>승인상태</th>

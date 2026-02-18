@@ -63,7 +63,7 @@
                 howToPay: partner.howToPay || "",
             };
         } catch (err) {
-            error = "사업장 정보를 불러올 수 없습니다.";
+            error = "사설클럽 정보를 불러올 수 없습니다.";
         } finally {
             loading = false;
         }
@@ -100,7 +100,7 @@
     }
 
     async function handleApprove() {
-        if (!confirm("이 사업장을 승인하시겠습니까?")) return;
+         if (!confirm("이 사설클럽을 승인하시겠습니까?")) return;
 
         saving = true;
         error = "";
@@ -137,11 +137,13 @@
 </script>
 
 <svelte:head>
-    <title>사업장 상세 - LESGO PiCKLE</title>
+    <title>사설클럽 상세 - LESGO PiCKLE</title>
 </svelte:head>
 
 <div class="pb-shell page">
-    <SiteHeader title="사업장관리" brandHref="/admin/partners" hasNav={true}>
+    <SiteHeader title="사설클럽 관리" brandHref="/admin/partners" hasNav={true}>
+        <a class="pb-btn-ghost nav-link" href="/admin/partners">사설클럽 관리</a>
+        <a class="pb-btn-ghost nav-link" href="/admin/circles">동호회 관리</a>
         <button class="pb-btn-ghost nav-link logout-btn" on:click={handleLogout}>
           로그아웃
         </button>
@@ -194,9 +196,9 @@
                     </div>
 
                     <div class="field-group">
-                        <label for="businessPartner" class="field-label"
-                            >사업장명</label
-                        >
+                         <label for="businessPartner" class="field-label"
+                             >사설클럽명</label
+                         >
                         <input
                             id="businessPartner"
                             type="text"
