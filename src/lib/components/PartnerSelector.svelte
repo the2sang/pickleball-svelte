@@ -108,7 +108,7 @@
 <div class="pb-card card">
   <div class="step-header">
     <span class="step-number">1</span>
-    <span class="step-title">사업장 선택</span>
+    <span class="step-title">플레이그라운드</span>
     {#if totalCount > 0}
       <span class="badge">{totalCount}개</span>
     {/if}

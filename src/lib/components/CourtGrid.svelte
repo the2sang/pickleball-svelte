@@ -152,8 +152,8 @@
     );
 
     if (counts.isFull) return "마감";
-    if (counts.total > 0) return "예약가능";
-    return "예약접수";
+  if (counts.total > 0) return "접수가능";
+  return "참가신청";
   }
 
   function getScheduleTypeLabel(scheduleType) {
@@ -162,38 +162,34 @@
     return "";
   }
 
-  // 시간대 포맷팅: "06:00~09:00" → "오전6시~9시(3시간)"
+  // 시간대 포맷팅: "06:00~09:00" → "AM6~PM12(6H)"
   function formatTimeSlot(timeSlot) {
     try {
       const [startStr, endStr] = timeSlot.split('~').map(s => s.trim());
       const [startHour, startMin] = startStr.split(':').map(Number);
       const [endHour, endMin] = endStr.split(':').map(Number);
 
-      // 오전/오후 구분
-      const startPeriod = startHour < 12 ? '오전' : '오후';
-      const endPeriod = endHour < 12 ? '오전' : '오후';
+      const startPeriod = startHour < 12 ? 'AM' : 'PM';
+      const endPeriod = endHour < 12 ? 'AM' : 'PM';
 
-      // 12시간 형식 변환
       const startHour12 = startHour === 0 ? 12 : (startHour > 12 ? startHour - 12 : startHour);
       const endHour12 = endHour === 0 ? 12 : (endHour > 12 ? endHour - 12 : endHour);
 
-      // 시간 포맷 (분이 00이면 생략, 앞자리 0 제거)
-      const formatTime = (hour, min, showPeriod = true, period = '') => {
-        const minStr = min > 0 ? `${min}분` : '';
-        return `${showPeriod ? period : ''}${hour}시${minStr}`;
+      const formatTime = (hour, min, period) => {
+        const minStr = min > 0 ? `:${String(min).padStart(2, '0')}` : '';
+        return `${period}${hour}${minStr}`;
       };
 
-      const startTimeStr = formatTime(startHour12, startMin, true, startPeriod);
-      const endTimeStr = formatTime(endHour12, endMin, startPeriod !== endPeriod, endPeriod);
+      const startTimeStr = formatTime(startHour12, startMin, startPeriod);
+      const endTimeStr = formatTime(endHour12, endMin, endPeriod);
 
-      // 시간 차이 계산
-      const totalMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+      const totalMinutes = Math.max((endHour * 60 + endMin) - (startHour * 60 + startMin), 0);
       const hours = Math.floor(totalMinutes / 60);
       const minutes = totalMinutes % 60;
 
       const durationStr = minutes > 0
-        ? `${hours}시간${minutes}분`
-        : `${hours}시간`;
+        ? `${hours}H${minutes}M`
+        : `${hours}H`;
 
       return `${startTimeStr}~${endTimeStr}(${durationStr})`;
     } catch (e) {
@@ -206,7 +202,7 @@
 <div class="pb-card card slide-up">
   <div class="step-header">
     <span class="step-number">3</span>
-    <span class="step-title">시간대별 게임 현황</span>
+    <span class="step-title">참가 신청</span>
     {#if loading}
       <span class="loading-text">불러오는 중...</span>
     {/if}
@@ -214,10 +210,10 @@
 
   <div class="legend">
     <span class="legend-item"
-      ><span class="dot" style="background:#E8F5E9"></span> 예약접수</span
+><span class="dot" style="background:#E8F5E9"></span> 참가신청</span
     >
     <span class="legend-item"
-      ><span class="dot" style="background:#FFF3E0"></span> 일부예약</span
+><span class="dot" style="background:#FFF3E0"></span> 접수 중</span
     >
     <span class="legend-item"
       ><span class="dot" style="background:#FFEBEE"></span> 마감</span

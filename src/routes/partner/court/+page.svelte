@@ -65,7 +65,7 @@
     }
 
     function reservCloseLabel(close) {
-        return close === "Y" ? "예약마감" : "예약가능";
+  return close === "Y" ? "예약마감" : "접수가능";
     }
 </script>
 

@@ -182,7 +182,7 @@
                         class="field-input"
                         bind:value={formData.reservClose}
                     >
-                        <option value="N">예약가능</option>
+            <option value="N">접수가능</option>
                         <option value="Y">예약마감</option>
                     </select>
                 </div>
