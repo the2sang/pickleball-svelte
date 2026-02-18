@@ -58,6 +58,7 @@
     let circleOptions = [];
     let circleOptionsLoading = false;
     let circleOptionsError = "";
+    let circleOptionsNotice = "";
     let circleNameInputMode = "select"; // select | direct
 
     let termsModalOpen = false;
@@ -67,28 +68,64 @@
         fetchCircleOptions();
     });
 
+    const CIRCLE_CACHE_KEY = "signup-circle-options";
+
+    function readCircleCache() {
+        try {
+            const raw = localStorage.getItem(CIRCLE_CACHE_KEY);
+            if (!raw) return [];
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    }
+
+    function writeCircleCache(values) {
+        try {
+            localStorage.setItem(CIRCLE_CACHE_KEY, JSON.stringify(values));
+        } catch {
+            // no-op: cache is best effort
+        }
+    }
+
+    async function requestCirclePage(currentPage) {
+        const params = new URLSearchParams({
+            page: String(currentPage),
+            size: "100",
+        });
+        const response = await fetch(
+            buildApiUrl(`/api/v1/circles/options?${params.toString()}`),
+        );
+        if (!response.ok) {
+            throw new Error(`동호회 조회 실패 (${response.status})`);
+        }
+        return response.json();
+    }
+
     async function fetchCircleOptions() {
         circleOptionsLoading = true;
         circleOptionsError = "";
+        circleOptionsNotice = "";
         try {
             const collected = [];
             let currentPage = 1;
             let total = 0;
+            let attemptedRetry = false;
 
             do {
-                const params = new URLSearchParams({
-                    page: String(currentPage),
-                    size: "100",
-                });
-                const response = await fetch(
-                    buildApiUrl(`/api/v1/circles?${params.toString()}`),
-                );
-
-                if (!response.ok) {
-                    throw new Error(`동호회 조회 실패 (${response.status})`);
+                let data;
+                try {
+                    data = await requestCirclePage(currentPage);
+                } catch (err) {
+                    if (!attemptedRetry) {
+                        attemptedRetry = true;
+                        await new Promise((resolve) => setTimeout(resolve, 500));
+                        data = await requestCirclePage(currentPage);
+                    } else {
+                        throw err;
+                    }
                 }
-
-                const data = await response.json();
                 const rows = Array.isArray(data?.data) ? data.data : [];
                 rows.forEach((row) => {
                     const name = (row?.businessPartner || "").trim();
@@ -103,9 +140,16 @@
                 a.localeCompare(b, "ko"),
             );
             circleOptions = uniqueSorted;
+            writeCircleCache(uniqueSorted);
         } catch (err) {
-            circleOptions = [];
-            circleOptionsError = "동호회 목록을 불러오지 못했습니다. 직접 입력을 이용해주세요.";
+            const cached = readCircleCache();
+            circleOptions = cached;
+            if (cached.length > 0) {
+                circleOptionsNotice = "실시간 목록 조회에 실패하여 최근 불러온 목록으로 표시합니다.";
+            } else {
+                circleOptionsNotice = "동호회 목록을 불러오지 못해 직접 입력으로 전환되었습니다.";
+            }
+            circleOptionsError = "";
             circleNameInputMode = "direct";
         } finally {
             circleOptionsLoading = false;
@@ -889,6 +933,9 @@
                         {#if circleOptionsError}
                             <div class="circle-help error">{circleOptionsError}</div>
                         {/if}
+                        {#if circleOptionsNotice}
+                            <div class="circle-help">{circleOptionsNotice}</div>
+                        {/if}
 
                         {#if circleOptions.length > 0 && circleNameInputMode === "select"}
                             <div class="circle-picker-row">
@@ -929,6 +976,15 @@
                                         on:click={switchCircleNameToSelect}
                                     >
                                         목록 선택
+                                    </button>
+                                {:else}
+                                    <button
+                                        type="button"
+                                        class="circle-mode-btn"
+                                        on:click={fetchCircleOptions}
+                                        disabled={circleOptionsLoading}
+                                    >
+                                        다시 시도
                                     </button>
                                 {/if}
                             </div>
