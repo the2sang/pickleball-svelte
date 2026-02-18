@@ -13,10 +13,25 @@
     // 오늘 날짜를 YYYY-MM-DD 형식으로 생성
     function getTodayString() {
         const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
+        return formatDateToYMD(today);
+    }
+
+    function formatDateToYMD(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
         return `${year}-${month}-${day}`;
+    }
+
+    function getDateFromInput(inputDate) {
+        const [year, month, day] = inputDate.split("-").map(Number);
+        return new Date(year, month - 1, day);
+    }
+
+    function getPreviousDateString(baseDate) {
+        const date = getDateFromInput(baseDate);
+        date.setDate(date.getDate() - 1);
+        return formatDateToYMD(date);
     }
 
     let selectedDate = getTodayString(); // 오늘 날짜 디폴트
@@ -24,6 +39,7 @@
     let approvedRentalSlots = [];
     let loading = false;
     let saving = false;
+    let copying = false;
     let error = "";
     let successMsg = "";
 
@@ -146,6 +162,26 @@
         } finally {
             loading = false;
         }
+    }
+
+    async function fetchSettingsByDate(targetDate) {
+        if (!selectedCourtId || !targetDate) return null;
+
+        const res = await fetch(
+            buildApiUrl(
+                `/api/v1/partner-manage/reservation/settings?courtId=${selectedCourtId}&date=${targetDate}`,
+            ),
+            {
+                headers: { Authorization: `Bearer ${getToken()}` },
+            },
+        );
+
+        if (!res.ok) {
+            const apiErr = await parseApiErrorResponse(res);
+            throw new Error(apiErr.message);
+        }
+
+        return await res.json();
     }
 
     async function fetchRentalRequests() {
@@ -350,6 +386,44 @@
         }
     }
 
+    async function handleCopyFromYesterday() {
+        if (!selectedCourtId) return;
+
+        const hasPendingRental = rentalRequests.some(isPendingRentalRequest);
+        if (hasPendingRental) {
+            alert(
+                "대관 신청에 대한 승인처리를 먼저 진행하셔야 전일 설정 가져오기가 가능합니다",
+            );
+            return;
+        }
+
+        const previousDate = getPreviousDateString(selectedDate);
+        copying = true;
+        error = "";
+        successMsg = "";
+
+        try {
+            const data = await fetchSettingsByDate(previousDate);
+
+            if (!data || !Array.isArray(data.timeSlots)) {
+                timeSlots = [];
+            } else {
+                timeSlots = data.timeSlots
+                    .filter((slot) => slot.type === "OPEN_GAME")
+                    .map((slot) => ({
+                        startTime: normalizeTime(slot.startTime),
+                        endTime: normalizeTime(slot.endTime),
+                    }));
+            }
+
+            await handleSave();
+        } catch (e) {
+            error = e.message;
+        } finally {
+            copying = false;
+        }
+    }
+
     function handleCourtChange() {
         fetchSettings();
     }
@@ -374,7 +448,7 @@
         return `${String(newH).padStart(2, "0")}:${String(newM).padStart(2, "0")}`;
     }
 
-    function getDiffMinutes(start, end) {
+function getDiffMinutes(start, end) {
         let [h1, m1] = start.split(":").map(Number);
         let [h2, m2] = end.split(":").map(Number);
 
@@ -382,8 +456,26 @@
         if (h1 === 24) h1 = 24; // already 24
         if (h2 === 24) h2 = 24;
 
-        return h2 * 60 + m2 - (h1 * 60 + m1);
+    return h2 * 60 + m2 - (h1 * 60 + m1);
+}
+
+function formatDurationLabel(start, end) {
+    const diff = getDiffMinutes(start, end);
+
+    if (diff <= 0) {
+        return "0H";
     }
+
+    const hours = Math.floor(diff / 60);
+    const minutes = diff % 60;
+
+    if (minutes === 0) {
+        return `${hours}H`;
+    }
+
+    const minuteText = String(minutes).padStart(2, "0");
+    return `${hours}H${minuteText}M`;
+}
 
     function handleStartTimeChange(index, event) {
         const newStartTime = event.target.value;
@@ -617,7 +709,7 @@ function handleAddSlot() {
                                         handleDurationChange(i, e)}
                                 >
                                     <option value="" disabled selected
-                                        >시간 선택</option
+                                        >시간</option
                                     >
                                     {#each Array(12) as _, h}
                                         <option value={h + 1}
@@ -626,12 +718,7 @@ function handleAddSlot() {
                                     {/each}
                                 </select>
                                 <span class="duration-info">
-                                    {Math.floor(
-                                        getDiffMinutes(
-                                            slot.startTime,
-                                            slot.endTime,
-                                        ) / 60,
-                                    )}시간
+                                    {formatDurationLabel(slot.startTime, slot.endTime)}
                                 </span>
                                 <button
                                     class="pb-btn-ghost delete-btn"
@@ -645,19 +732,26 @@ function handleAddSlot() {
                     {/each}
                 {/if}
 
-                    <div class="button-group">
-                        <button
-                            class="pb-btn-ghost add-btn"
-                            on:click={handleAddSlot}
-                            disabled={loading || saving}
-                        >
-                            시간대 추가
-                        </button>
-                        <button
-                            class="pb-btn-primary save-btn"
-                            on:click={handleSave}
-                            disabled={loading || saving}
-                        >
+                <div class="button-group">
+                    <button
+                        class="pb-btn-ghost"
+                        on:click={handleCopyFromYesterday}
+                        disabled={loading || saving || copying}
+                    >
+                        {copying ? "가져오는 중..." : "전일 설정 가져오기"}
+                    </button>
+                    <button
+                        class="pb-btn-ghost add-btn"
+                        on:click={handleAddSlot}
+                        disabled={loading || saving || copying}
+                    >
+                        시간대 추가
+                    </button>
+                    <button
+                        class="pb-btn-primary save-btn"
+                        on:click={handleSave}
+                        disabled={loading || saving || copying}
+                    >
                             {saving ? "저장 중..." : "설정 저장"}
                         </button>
                     </div>
