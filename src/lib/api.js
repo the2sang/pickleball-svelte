@@ -1,4 +1,11 @@
-const API_BASE = (import.meta.env.VITE_API_BASE || 'http://localhost:8080').replace(/\/+$/, '');
+const normalizeApiBase = (raw) => {
+  const value = (raw || "http://localhost:8080").trim();
+  if (/^https?:\/\//i.test(value)) return value.replace(/\/+$/, "");
+  if (value.startsWith("/")) return value.replace(/\/+$/, "");
+  return `http://${value}`.replace(/\/+$/, "");
+};
+
+const API_BASE = normalizeApiBase(import.meta.env.VITE_API_BASE);
 
 export const buildApiUrl = (path) => {
   if (!path) return API_BASE;
