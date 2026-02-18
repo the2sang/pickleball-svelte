@@ -1,6 +1,7 @@
 <script>
   import {
     selectedPartner,
+    selectedPlaygroundType,
     partnerInfo,
     courts,
   } from "$lib/stores/reservation.js";
@@ -19,6 +20,12 @@
     fetchPartners();
   });
 
+  $: searchPlaceholder = $selectedPlaygroundType === "CIRCLE"
+    ? "동호회명 또는 활동지역으로 검색..."
+    : "사설클럽명 또는 주소로 검색...";
+
+  $: playgroundLabel = $selectedPlaygroundType === "CIRCLE" ? "동호회" : "사설클럽";
+
   function handleSearch() {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => {
@@ -26,7 +33,16 @@
     }, 300);
   }
 
-  async function fetchPartners() {
+  function selectPlaygroundType(type) {
+    if ($selectedPlaygroundType === type) return;
+    selectedPlaygroundType.set(type);
+    selectedPartner.set(null);
+    partnerInfo.set(null);
+    courts.set([]);
+    fetchPartners(type);
+  }
+
+  async function fetchPartners(type = $selectedPlaygroundType) {
     loading = true;
     fetchError = "";
     const headers = {};
@@ -40,11 +56,12 @@
       if (keyword.trim()) {
         params.set("keyword", keyword.trim());
       }
-      const res = await fetch(buildApiUrl(`/api/v1/partners?${params}`), {
+      const endpoint = type === "CIRCLE" ? "/api/v1/circles" : "/api/v1/partners";
+      const res = await fetch(buildApiUrl(`${endpoint}?${params}`), {
         headers,
       });
         if (!res.ok) {
-          throw new Error(`사업장 조회 실패 (${res.status})`);
+          throw new Error(`${type === "CIRCLE" ? "동호회" : "사설클럽"} 조회 실패 (${res.status})`);
         }
 
         const data = await res.json();
@@ -57,9 +74,9 @@
           return aName.localeCompare(bName, "ko-KR", { sensitivity: "base" });
         });
         totalCount = typeof data?.total === "number" ? data.total : partners.length;
-      } catch (e) {
-        console.error("사업장 조회 실패:", e);
-        fetchError = e?.message || "사업장 목록을 불러오지 못했습니다.";
+       } catch (e) {
+         console.error("플레이그라운드 목록 조회 실패:", e);
+         fetchError = e?.message || `${type === "CIRCLE" ? "동호회" : "사설클럽"} 목록을 불러오지 못했습니다.`;
         partners = [];
         totalCount = 0;
       } finally {
@@ -72,7 +89,11 @@
     const partner = partners.find((p) => p.id === id);
     if (partner) {
       partnerInfo.set(partner);
-      fetchCourts(id);
+      if ($selectedPlaygroundType === "PARTNER") {
+        fetchCourts(id);
+      } else {
+        courts.set([]);
+      }
     }
   }
 
@@ -114,6 +135,25 @@
     {/if}
   </div>
 
+  <div class="type-toggle" role="tablist" aria-label="플레이그라운드 유형">
+    <button
+      type="button"
+      class="type-toggle-btn"
+      class:active={$selectedPlaygroundType === "PARTNER"}
+      on:click={() => selectPlaygroundType("PARTNER")}
+    >
+      사설클럽
+    </button>
+    <button
+      type="button"
+      class="type-toggle-btn"
+      class:active={$selectedPlaygroundType === "CIRCLE"}
+      on:click={() => selectPlaygroundType("CIRCLE")}
+    >
+      동호회
+    </button>
+  </div>
+
   <!-- Search Bar -->
   <div class="search-bar">
     <div class="search-input-wrap">
@@ -130,7 +170,7 @@
       <input
         type="text"
         class="search-input"
-        placeholder="사업장명 또는 주소로 검색..."
+        placeholder={searchPlaceholder}
         bind:value={keyword}
         on:input={handleSearch}
       />
@@ -159,7 +199,7 @@
         {#if keyword}
           '<strong>{keyword}</strong>' 검색 결과가 없습니다
         {:else}
-          등록된 사업장이 없습니다
+          등록된 {playgroundLabel}가 없습니다
         {/if}
       </p>
     </div>
@@ -177,9 +217,9 @@
               <span class="check-badge">✓</span>
             {/if}
           </div>
-          <div class="partner-owner">👤 {p.owner}</div>
+          <div class="partner-owner">👤 {$selectedPlaygroundType === "CIRCLE" ? "회장" : "대표"} {p.owner}</div>
           <div class="partner-addr">📍 {p.partnerAddress}</div>
-          {#if p.courtCount > 0}
+          {#if $selectedPlaygroundType === "PARTNER" && p.courtCount > 0}
             <div class="partner-courts">🏟️ 코트 {p.courtCount}개</div>
           {/if}
         </button>
@@ -230,6 +270,31 @@
   /* Search Bar */
   .search-bar {
     margin-bottom: 16px;
+  }
+  .type-toggle {
+    display: inline-flex;
+    gap: 4px;
+    background: #edf2f7;
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 12px;
+  }
+  .type-toggle-btn {
+    border: none;
+    background: transparent;
+    color: #4a5568;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.18s;
+  }
+  .type-toggle-btn.active {
+    background: #2b6cb0;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(43, 108, 176, 0.22);
   }
   .search-input-wrap {
     position: relative;

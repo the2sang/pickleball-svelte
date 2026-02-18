@@ -5,6 +5,7 @@ import { getNext7Days } from '$lib/data/mock.js';
 const dates = getNext7Days();
 
 export const selectedPartner = writable(null);
+export const selectedPlaygroundType = writable('PARTNER');
 export const partnerInfo = writable(null); // { id, name, ... }
 export const selectedDate = writable(dates[0].value);
 export const modalOpen = writable(false);

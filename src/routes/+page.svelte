@@ -5,7 +5,7 @@
   import DetailModal from "$lib/components/DetailModal.svelte";
   import ConfirmModal from "$lib/components/ConfirmModal.svelte";
   import SuccessToast from "$lib/components/SuccessToast.svelte";
-  import { selectedPartner, selectedDate } from "$lib/stores/reservation.js";
+  import { selectedPartner, selectedDate, selectedPlaygroundType } from "$lib/stores/reservation.js";
   import { auth } from "$lib/stores/auth.js";
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
@@ -34,8 +34,8 @@
         <span class="user-name">{$auth.name || $auth.username}</span>님
       </span>
       {#if $auth.accountType === 'PARTNER'}
-        <a href="/partner" class="pb-btn-ghost nav-link partner-link">사업장 관리</a>
-        <a href="/partner/profile" class="pb-btn-ghost nav-link profile-link">사업장정보</a>
+         <a href="/partner" class="pb-btn-ghost nav-link partner-link">사설클럽 관리</a>
+         <a href="/partner/profile" class="pb-btn-ghost nav-link profile-link">사설클럽정보</a>
       {:else}
         <a href="/profile" class="pb-btn-ghost nav-link profile-link">회원정보</a>
       {/if}
@@ -52,11 +52,11 @@
   <main class="pb-container main">
     <PartnerSelector />
 
-    {#if $selectedPartner}
+    {#if $selectedPartner && $selectedPlaygroundType === 'PARTNER'}
       <DateSelector />
     {/if}
 
-    {#if $selectedPartner && $selectedDate}
+    {#if $selectedPartner && $selectedDate && $selectedPlaygroundType === 'PARTNER'}
       <CourtGrid />
     {/if}
   </main>
