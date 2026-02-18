@@ -3,6 +3,7 @@
     import { goto } from "$app/navigation";
     import { page } from "$app/stores";
     import { auth } from "$lib/stores/auth.js";
+    import { buildApiUrl } from "$lib/api.js";
     import SiteHeader from "$lib/components/SiteHeader.svelte";
 
     let partner = null;
@@ -39,7 +40,7 @@
         loading = true;
         error = "";
         try {
-            const res = await fetch(`/api/v1/admin/partners/${partnerId}`, {
+            const res = await fetch(buildApiUrl(`/api/v1/admin/partners/${partnerId}`), {
                 headers: { Authorization: `Bearer ${getToken()}` },
             });
 
@@ -74,7 +75,7 @@
         error = "";
         successMsg = "";
         try {
-            const res = await fetch(`/api/v1/admin/partners/${partnerId}`, {
+            const res = await fetch(buildApiUrl(`/api/v1/admin/partners/${partnerId}`), {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -106,7 +107,7 @@
         successMsg = "";
         try {
             const res = await fetch(
-                `/api/v1/admin/partners/${partnerId}/approve`,
+                buildApiUrl(`/api/v1/admin/partners/${partnerId}/approve`),
                 {
                     method: "PUT",
                     headers: { Authorization: `Bearer ${getToken()}` },

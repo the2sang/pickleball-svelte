@@ -3,6 +3,7 @@
     import { goto } from "$app/navigation";
     import { page } from "$app/stores";
     import { auth } from "$lib/stores/auth.js";
+    import { buildApiUrl } from "$lib/api.js";
     import SiteHeader from "$lib/components/SiteHeader.svelte";
 
     let formData = {
@@ -48,7 +49,7 @@
         error = "";
 
         try {
-            const res = await fetch("/api/v1/partner-manage/courts", {
+            const res = await fetch(buildApiUrl("/api/v1/partner-manage/courts"), {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

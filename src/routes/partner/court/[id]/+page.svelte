@@ -3,6 +3,7 @@
     import { goto } from "$app/navigation";
     import { page } from "$app/stores";
     import { auth } from "$lib/stores/auth.js";
+    import { buildApiUrl } from "$lib/api.js";
     import SiteHeader from "$lib/components/SiteHeader.svelte";
 
     let courtId = $page.params.id;
@@ -45,7 +46,7 @@
         loading = true;
         try {
             const res = await fetch(
-                `/api/v1/partner-manage/courts/${courtId}`,
+                buildApiUrl(`/api/v1/partner-manage/courts/${courtId}`),
                 {
                     headers: { Authorization: `Bearer ${getToken()}` },
                 },
@@ -69,7 +70,7 @@
 
         try {
             const res = await fetch(
-                `/api/v1/partner-manage/courts/${courtId}`,
+                buildApiUrl(`/api/v1/partner-manage/courts/${courtId}`),
                 {
                     method: "PUT",
                     headers: {
@@ -100,7 +101,7 @@
 
         try {
             const res = await fetch(
-                `/api/v1/partner-manage/courts/${courtId}`,
+                buildApiUrl(`/api/v1/partner-manage/courts/${courtId}`),
                 {
                     method: "DELETE",
                     headers: { Authorization: `Bearer ${getToken()}` },

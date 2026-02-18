@@ -4,6 +4,7 @@
   import PlayerChip from './PlayerChip.svelte';
   import { selectedDate, modalOpen, modalData, confirmOpen, refreshTrigger } from '$lib/stores/reservation.js';
   import { auth } from '$lib/stores/auth.js';
+  import { buildApiUrl } from "$lib/api.js";
   import {
     getReservationCounts,
     isCancelDeadlinePassed,
@@ -32,7 +33,9 @@
     cancelConfirmOpen = false;
 
     try {
-      const res = await fetch(`/api/v1/reservations/${myReservation.reservationId}`, {
+      const res = await fetch(
+        buildApiUrl(`/api/v1/reservations/${myReservation.reservationId}`),
+        {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${$auth.accessToken}`,

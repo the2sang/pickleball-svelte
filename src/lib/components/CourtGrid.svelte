@@ -11,6 +11,7 @@
   import { getReservationCounts, isGeneralMember, isPastSlot } from "$lib/utils/reservationPolicy.js";
   import LevelBadge from "./LevelBadge.svelte";
   import RentalRequestModal from "./RentalRequestModal.svelte";
+  import { buildApiUrl } from "$lib/api.js";
 
   let courtSlotsMap = {};
   let timeRows = [];
@@ -40,7 +41,9 @@
 
     try {
       const promises = $filteredCourts.map(async (court) => {
-        const url = `/api/v1/courts/${court.id}/slots?date=${$selectedDate}`;
+        const url = buildApiUrl(
+          `/api/v1/courts/${court.id}/slots?date=${$selectedDate}`,
+        );
         const headers = {};
         if (token) {
           headers.Authorization = `Bearer ${token}`;

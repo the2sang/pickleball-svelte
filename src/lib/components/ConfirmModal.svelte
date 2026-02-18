@@ -10,6 +10,7 @@
     refreshTrigger,
   } from "$lib/stores/reservation.js";
   import { auth } from "$lib/stores/auth.js";
+  import { buildApiUrl } from "$lib/api.js";
   import { parseApiErrorResponse } from "$lib/utils/apiError.js";
 
   let loading = $state(false);
@@ -29,7 +30,7 @@
         teamName: "",
       };
 
-      const res = await fetch("/api/v1/reservations", {
+      const res = await fetch(buildApiUrl("/api/v1/reservations"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
