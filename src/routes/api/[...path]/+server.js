@@ -1,5 +1,7 @@
 import { env } from "$env/dynamic/private";
 
+const PROD_FALLBACK_TARGET = "https://pickleball-backend-production-150f.up.railway.app";
+
 const normalizeTarget = (raw) => {
   const value = (raw || "").trim();
   if (!value) return "";
@@ -8,7 +10,12 @@ const normalizeTarget = (raw) => {
 };
 
 const makeHandler = (method) => async ({ params, request, url }) => {
-  const targetBase = normalizeTarget(env.API_PROXY_TARGET);
+  const configuredTarget = normalizeTarget(env.API_PROXY_TARGET);
+  const isVercelRuntime = Boolean(env.VERCEL);
+  const pointsToLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(configuredTarget);
+  const targetBase = isVercelRuntime && pointsToLocalhost
+    ? PROD_FALLBACK_TARGET
+    : configuredTarget;
   if (!targetBase) {
     return new Response(
       JSON.stringify({

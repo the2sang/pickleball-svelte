@@ -256,6 +256,10 @@
                     아직 회원이 아니신가요?
                     <a href="/signup" class="signup-anchor">회원가입</a>
                 </div>
+                <div class="signup-prompt">
+                    테스트 계정 로그인이 필요하신가요?
+                    <a href="/login/test" class="signup-anchor">테스트 로그인</a>
+                </div>
             </form>
         </div>
     </main>

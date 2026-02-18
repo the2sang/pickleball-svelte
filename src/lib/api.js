@@ -5,9 +5,7 @@ const normalizeApiBase = (raw) => {
   return `http://${value}`.replace(/\/+$/, "");
 };
 
-const rawApiBase = import.meta.env.VITE_API_BASE || "/api";
-const isVercelHost = typeof window !== "undefined" && /\.vercel\.app$/.test(window.location.hostname);
-const API_BASE = normalizeApiBase(isVercelHost ? "/api" : rawApiBase);
+const API_BASE = normalizeApiBase(import.meta.env.VITE_API_BASE || "/api");
 
 export const buildApiUrl = (path) => {
   if (!path) return API_BASE;
