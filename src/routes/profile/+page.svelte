@@ -9,8 +9,17 @@
     let formData = {};
     let loading = true;
     let saving = false;
+    let changingPassword = false;
+    let showPasswordForm = false;
     let error = "";
     let successMsg = "";
+    let passwordError = "";
+    let passwordSuccessMsg = "";
+    let passwordForm = {
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+    };
 
     onMount(() => {
         auth.refresh();
@@ -105,6 +114,75 @@
             error = err.message || "수정 중 오류가 발생했습니다.";
         } finally {
             saving = false;
+        }
+    }
+
+    function togglePasswordForm() {
+        showPasswordForm = !showPasswordForm;
+        passwordError = "";
+        passwordSuccessMsg = "";
+
+        if (!showPasswordForm) {
+            passwordForm = {
+                currentPassword: "",
+                newPassword: "",
+                confirmPassword: "",
+            };
+        }
+    }
+
+    async function handleChangePassword(e) {
+        e.preventDefault();
+        passwordError = "";
+        passwordSuccessMsg = "";
+
+        if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+            passwordError = "현재 비밀번호와 새 비밀번호를 모두 입력해주세요.";
+            return;
+        }
+
+        if (passwordForm.newPassword.length < 8) {
+            passwordError = "새 비밀번호는 8자 이상 입력해주세요.";
+            return;
+        }
+
+        if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+            passwordError = "새 비밀번호와 비밀번호 확인이 일치하지 않습니다.";
+            return;
+        }
+
+        changingPassword = true;
+        try {
+            const res = await fetch(buildApiUrl("/api/v1/members/me/password"), {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${getToken()}`,
+                },
+                body: JSON.stringify(passwordForm),
+            });
+
+            if (!res.ok) {
+                if (res.status === 404 || res.status === 405) {
+                    throw new Error("비밀번호 변경 기능이 서버에 반영되지 않았습니다. 백엔드를 최신 버전으로 재시작해주세요.");
+                }
+                const errData = await res.json().catch(() => null);
+                throw new Error(errData?.message || "비밀번호 변경 실패");
+            }
+
+            passwordSuccessMsg = "비밀번호가 변경되었습니다.";
+            passwordForm = {
+                currentPassword: "",
+                newPassword: "",
+                confirmPassword: "",
+            };
+            setTimeout(() => {
+                passwordSuccessMsg = "";
+            }, 3000);
+        } catch (err) {
+            passwordError = err.message || "비밀번호 변경 중 오류가 발생했습니다.";
+        } finally {
+            changingPassword = false;
         }
     }
 
@@ -320,6 +398,73 @@
                         </button>
                     </div>
                 </form>
+
+                <div class="password-section">
+                    <div class="password-section-header">
+                        <span class="password-title">비밀번호</span>
+                        <button
+                            type="button"
+                            class="password-toggle-btn"
+                            on:click={togglePasswordForm}
+                            aria-expanded={showPasswordForm}
+                        >
+                            {showPasswordForm ? "비밀번호 변경 닫기" : "비밀번호 변경"}
+                        </button>
+                    </div>
+
+                    {#if showPasswordForm}
+                        {#if passwordSuccessMsg}
+                            <div class="success-msg">✅ {passwordSuccessMsg}</div>
+                        {/if}
+                        {#if passwordError}
+                            <div class="error-msg">⚠️ {passwordError}</div>
+                        {/if}
+
+                        <div class="password-form-wrap">
+                            <div class="field-group">
+                                <label for="currentPassword" class="field-label">현재 비밀번호</label>
+                                <input
+                                    id="currentPassword"
+                                    type="password"
+                                    class="field-input"
+                                    bind:value={passwordForm.currentPassword}
+                                    autocomplete="current-password"
+                                />
+                            </div>
+                            <div class="field-group">
+                                <label for="newPassword" class="field-label">새 비밀번호</label>
+                                <input
+                                    id="newPassword"
+                                    type="password"
+                                    class="field-input"
+                                    bind:value={passwordForm.newPassword}
+                                    autocomplete="new-password"
+                                />
+                            </div>
+                            <div class="field-group">
+                                <label for="confirmPassword" class="field-label">새 비밀번호 확인</label>
+                                <input
+                                    id="confirmPassword"
+                                    type="password"
+                                    class="field-input"
+                                    bind:value={passwordForm.confirmPassword}
+                                    autocomplete="new-password"
+                                />
+                            </div>
+                            <div class="password-hint">보안을 위해 새 비밀번호는 8자 이상으로 설정해주세요.</div>
+                            <div class="password-btn-row">
+                                <button
+                                    type="button"
+                                    class="save-btn"
+                                    on:click={handleChangePassword}
+                                    disabled={changingPassword}
+                                >
+                                    {changingPassword ? "변경 중..." : "비밀번호 변경"}
+                                </button>
+                            </div>
+                        </div>
+                    {/if}
+                </div>
             </div>
         {/if}
     </main>
@@ -478,6 +623,7 @@
         gap: 12px;
         justify-content: flex-end;
         padding-top: 8px;
+        padding-bottom: 5px;
     }
     .cancel-btn {
         padding: 12px 28px;
@@ -520,5 +666,55 @@
         padding: 48px 16px;
         color: #718096;
         font-size: 15px;
+    }
+
+    .password-section {
+        margin-top: 5px;
+        border-top: 1px solid #e2e8f0;
+        padding-top: 20px;
+    }
+    .password-section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .password-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #2d3748;
+    }
+    .password-toggle-btn {
+        padding: 10px 16px;
+        border: 1px solid #2b6cb0;
+        background: #fff;
+        color: #2b6cb0;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.15s;
+    }
+    .password-toggle-btn:hover {
+        background: #ebf8ff;
+    }
+    .password-form-wrap {
+        margin-top: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+        border-radius: 10px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+    .password-hint {
+        font-size: 12px;
+        color: #718096;
+    }
+    .password-btn-row {
+        display: flex;
+        justify-content: flex-end;
     }
 </style>
