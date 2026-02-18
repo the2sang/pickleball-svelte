@@ -20,7 +20,7 @@ const makeHandler = (method) => async ({ params, request, url }) => {
   }
 
   const path = params.path ?? "";
-  const upstreamUrl = `${targetBase}/${path}${url.search}`;
+  const upstreamUrl = `${targetBase}/api/${path}${url.search}`;
 
   const headers = new Headers(request.headers);
   headers.delete("host");
