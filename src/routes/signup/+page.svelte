@@ -6,7 +6,7 @@
     import Modal from "$lib/components/Modal.svelte";
     import { TERMS_CONTENT } from "$lib/data/terms.js";
 
-    // 회원 유형: MEMBER(일반유저) / PARTNER(사업장)
+    // 회원 유형: MEMBER(일반유저) / CIRCLE(동호회) / PARTNER(사설클럽)
     let accountType = "MEMBER";
 
     // 통합 폼 데이터 (모든 필드 포함)
@@ -281,18 +281,27 @@
             isValid = false;
         }
 
-        // 사업장 전용 검증
-        if (accountType === "PARTNER") {
+        // 사설클럽 전용 검증
+        if (accountType === "PARTNER" || accountType === "CIRCLE") {
             if (!formData.businessPartner.trim()) {
-                errors.businessPartner = "사업장명을 입력해주세요";
+                errors.businessPartner =
+                    accountType === "CIRCLE"
+                        ? "동호회명을 입력해주세요"
+                        : "사설클럽명을 입력해주세요";
                 isValid = false;
             }
             if (!formData.owner.trim()) {
-                errors.owner = "대표자명을 입력해주세요";
+                errors.owner =
+                    accountType === "CIRCLE"
+                        ? "회장명을 입력해주세요"
+                        : "대표자명을 입력해주세요";
                 isValid = false;
             }
             if (!formData.partnerAddress.trim()) {
-                errors.partnerAddress = "사업장 주소를 입력해주세요";
+                errors.partnerAddress =
+                    accountType === "CIRCLE"
+                        ? "활동지역을 입력해주세요"
+                        : "사설클럽 주소를 입력해주세요";
                 isValid = false;
             }
             if (!formData.partnerEmail.trim()) {
@@ -337,8 +346,27 @@
                 agreeMarketing: agreements.marketing,
                 agreeAll: agreements.all,
             };
-        } else {
+        } else if (accountType === "PARTNER") {
             url = "/api/v1/auth/signup/partner";
+            payload = {
+                username: formData.username,
+                password: formData.password,
+                name: formData.name,
+                businessPartner: formData.businessPartner,
+                owner: formData.owner,
+                phoneNumber: formData.phoneNumber,
+                partnerAddress: formData.partnerAddress,
+                partnerEmail: formData.partnerEmail,
+                partnerAccount: formData.partnerAccount || null,
+                partnerBank: formData.partnerBank || null,
+                howToPay: formData.howToPay || null,
+                agreeService: agreements.service,
+                agreePrivacy: agreements.privacy,
+                agreeMarketing: agreements.marketing,
+                agreeAll: agreements.all,
+            };
+        } else {
+            url = "/api/v1/auth/signup/circle";
             payload = {
                 username: formData.username,
                 password: formData.password,
@@ -439,12 +467,21 @@
                 </button>
                 <button
                     class="type-btn"
+                    class:active={accountType === "CIRCLE"}
+                    on:click={() => switchType("CIRCLE")}
+                >
+                    <span class="type-icon">👥</span>
+                    <span class="type-label">동호회</span>
+                    <span class="type-desc">모임 운영 및 활동</span>
+                </button>
+                <button
+                    class="type-btn"
                     class:active={accountType === "PARTNER"}
                     on:click={() => switchType("PARTNER")}
                 >
                     <span class="type-icon">🏢</span>
-                    <span class="type-label">사업장</span>
-                    <span class="type-desc">코트 운영 및 관리</span>
+                     <span class="type-label">사설클럽</span>
+                     <span class="type-desc">코트 운영 및 관리</span>
                 </button>
             </div>
 
@@ -456,7 +493,7 @@
                     </div>
                 {/if}
 
-                {#if accountType === "MEMBER" || accountType === "PARTNER"}
+                {#if accountType === "MEMBER" || accountType === "PARTNER" || accountType === "CIRCLE"}
                     <div class="pb-card agreements-card">
                         <div class="agreements-title">가입 약관 동의</div>
 
@@ -818,25 +855,26 @@
                         </div>
                     </div>
 
-                    <!-- ===== 사업장 전용 필드 ===== -->
-                {:else}
-                    <div class="section-title">
-                        <span class="section-icon">🏢</span> 사업장 정보
-                    </div>
+                    <!-- ===== 사설클럽 전용 필드 ===== -->
+                 {:else}
+                     <div class="section-title">
+                         <span class="section-icon">{accountType === "CIRCLE" ? "👥" : "🏢"}</span>
+                         {accountType === "CIRCLE" ? "동호회 정보" : "사설클럽 정보"}
+                     </div>
 
-                    <div class="form-group">
-                        <label for="businessPartner" class="label">
-                            사업장명 <span class="required">*</span>
-                        </label>
-                        <input
-                            type="text"
-                            id="businessPartner"
-                            bind:value={formData.businessPartner}
-                            class="input"
-                            class:error={errors.businessPartner}
-                            maxlength="100"
-                            placeholder="사업장 이름을 입력하세요"
-                        />
+                     <div class="form-group">
+                         <label for="businessPartner" class="label">
+                             {accountType === "CIRCLE" ? "동호회명" : "사설클럽명"} <span class="required">*</span>
+                          </label>
+                         <input
+                             type="text"
+                             id="businessPartner"
+                             bind:value={formData.businessPartner}
+                             class="input"
+                             class:error={errors.businessPartner}
+                             maxlength="100"
+                              placeholder={accountType === "CIRCLE" ? "동호회 이름을 입력하세요" : "사설클럽 이름을 입력하세요"}
+                          />
                         {#if errors.businessPartner}
                             <span class="error-message"
                                 >{errors.businessPartner}</span
@@ -846,7 +884,7 @@
 
                     <div class="form-group">
                         <label for="owner" class="label">
-                            대표자명 <span class="required">*</span>
+                            {accountType === "CIRCLE" ? "회장명" : "대표자명"} <span class="required">*</span>
                         </label>
                         <input
                             type="text"
@@ -855,7 +893,7 @@
                             class="input"
                             class:error={errors.owner}
                             maxlength="100"
-                            placeholder="대표자 이름을 입력하세요"
+                            placeholder={accountType === "CIRCLE" ? "회장 이름을 입력하세요" : "대표자 이름을 입력하세요"}
                         />
                         {#if errors.owner}
                             <span class="error-message">{errors.owner}</span>
@@ -863,18 +901,18 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="partnerAddress" class="label">
-                            사업장 주소 <span class="required">*</span>
-                        </label>
-                        <input
-                            type="text"
-                            id="partnerAddress"
-                            bind:value={formData.partnerAddress}
-                            class="input"
-                            class:error={errors.partnerAddress}
-                            maxlength="200"
-                            placeholder="사업장 주소를 입력하세요"
-                        />
+                         <label for="partnerAddress" class="label">
+                              {accountType === "CIRCLE" ? "활동지역" : "사설클럽 주소"} <span class="required">*</span>
+                          </label>
+                         <input
+                             type="text"
+                             id="partnerAddress"
+                             bind:value={formData.partnerAddress}
+                             class="input"
+                             class:error={errors.partnerAddress}
+                             maxlength="200"
+                              placeholder={accountType === "CIRCLE" ? "주요 활동지역을 입력하세요" : "사설클럽 주소를 입력하세요"}
+                          />
                         {#if errors.partnerAddress}
                             <span class="error-message"
                                 >{errors.partnerAddress}</span
@@ -996,11 +1034,13 @@
                     </h2>
                     <span
                         class="modal-badge"
-                        class:partner={accountType === "PARTNER"}
+                        class:partner={accountType === "PARTNER" || accountType === "CIRCLE"}
                     >
                         {accountType === "MEMBER"
-                            ? "👤 일반 회원"
-                            : "🏢 사업장"}
+                             ? "👤 일반 회원"
+                             : accountType === "CIRCLE"
+                               ? "👥 동호회"
+                               : "🏢 사설클럽"}
                     </span>
                 </div>
 
@@ -1058,17 +1098,17 @@
                             {/if}
                         {:else}
                             <div class="info-item">
-                                <span class="info-label">사업장명:</span>
-                                <span class="info-value"
-                                    >{formData.businessPartner}</span
-                                >
-                            </div>
+                                 <span class="info-label">{accountType === "CIRCLE" ? "동호회명" : "사설클럽명"}:</span>
+                                 <span class="info-value"
+                                     >{formData.businessPartner}</span
+                                 >
+                             </div>
                             <div class="info-item">
-                                <span class="info-label">대표자:</span>
+                                <span class="info-label">{accountType === "CIRCLE" ? "회장" : "대표자"}:</span>
                                 <span class="info-value">{formData.owner}</span>
                             </div>
                             <div class="info-item">
-                                <span class="info-label">주소:</span>
+                                <span class="info-label">{accountType === "CIRCLE" ? "활동지역" : "주소"}:</span>
                                 <span class="info-value"
                                     >{formData.partnerAddress}</span
                                 >
@@ -1161,7 +1201,7 @@
     /* Type Selector */
     .type-selector {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr 1fr 1fr;
         gap: 12px;
         margin-bottom: 28px;
     }
