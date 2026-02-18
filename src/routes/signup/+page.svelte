@@ -1,4 +1,5 @@
 <script>
+    import { onMount } from "svelte";
     import { goto } from "$app/navigation";
     import { auth } from "$lib/stores/auth.js";
     import { buildApiUrl } from "$lib/api.js";
@@ -54,8 +55,84 @@
         marketing: false,
     };
 
+    let circleOptions = [];
+    let circleOptionsLoading = false;
+    let circleOptionsError = "";
+    let circleNameInputMode = "select"; // select | direct
+
     let termsModalOpen = false;
     let termsModalKey = "service";
+
+    onMount(() => {
+        fetchCircleOptions();
+    });
+
+    async function fetchCircleOptions() {
+        circleOptionsLoading = true;
+        circleOptionsError = "";
+        try {
+            const collected = [];
+            let currentPage = 1;
+            let total = 0;
+
+            do {
+                const params = new URLSearchParams({
+                    page: String(currentPage),
+                    size: "100",
+                });
+                const response = await fetch(
+                    buildApiUrl(`/api/v1/circles?${params.toString()}`),
+                );
+
+                if (!response.ok) {
+                    throw new Error(`동호회 조회 실패 (${response.status})`);
+                }
+
+                const data = await response.json();
+                const rows = Array.isArray(data?.data) ? data.data : [];
+                rows.forEach((row) => {
+                    const name = (row?.businessPartner || "").trim();
+                    if (name) collected.push(name);
+                });
+
+                total = Number(data?.total || collected.length);
+                currentPage += 1;
+            } while (collected.length < total && currentPage <= 20);
+
+            const uniqueSorted = [...new Set(collected)].sort((a, b) =>
+                a.localeCompare(b, "ko"),
+            );
+            circleOptions = uniqueSorted;
+        } catch (err) {
+            circleOptions = [];
+            circleOptionsError = "동호회 목록을 불러오지 못했습니다. 직접 입력을 이용해주세요.";
+            circleNameInputMode = "direct";
+        } finally {
+            circleOptionsLoading = false;
+        }
+    }
+
+    function handleCircleNameSelect(event) {
+        const value = event.currentTarget.value;
+        if (value === "__direct__") {
+            circleNameInputMode = "direct";
+            formData.circleName = "";
+            return;
+        }
+        circleNameInputMode = "select";
+        formData.circleName = value;
+    }
+
+    function switchCircleNameToDirect() {
+        circleNameInputMode = "direct";
+        formData.circleName = "";
+    }
+
+    function switchCircleNameToSelect() {
+        if (circleOptions.length === 0) return;
+        circleNameInputMode = "select";
+        formData.circleName = circleOptions[0] || "";
+    }
 
     function openTerms(key) {
         termsModalKey = key;
@@ -805,14 +882,57 @@
                         <label for="circleName" class="label">
                             소속 동호회명 <span class="optional">(선택)</span>
                         </label>
-                        <input
-                            type="text"
-                            id="circleName"
-                            bind:value={formData.circleName}
-                            class="input"
-                            maxlength="50"
-                            placeholder="동호회 이름을 입력하세요"
-                        />
+                        {#if circleOptionsLoading}
+                            <div class="circle-help">등록된 동호회 목록을 불러오는 중...</div>
+                        {/if}
+
+                        {#if circleOptionsError}
+                            <div class="circle-help error">{circleOptionsError}</div>
+                        {/if}
+
+                        {#if circleOptions.length > 0 && circleNameInputMode === "select"}
+                            <div class="circle-picker-row">
+                                <select
+                                    id="circleName"
+                                    class="input select"
+                                    value={formData.circleName}
+                                    on:change={handleCircleNameSelect}
+                                >
+                                    <option value="">동호회를 선택하세요</option>
+                                    {#each circleOptions as option}
+                                        <option value={option}>{option}</option>
+                                    {/each}
+                                    <option value="__direct__">직접 입력</option>
+                                </select>
+                                <button
+                                    type="button"
+                                    class="circle-mode-btn"
+                                    on:click={switchCircleNameToDirect}
+                                >
+                                    직접 입력
+                                </button>
+                            </div>
+                        {:else}
+                            <div class="circle-picker-row">
+                                <input
+                                    type="text"
+                                    id="circleName"
+                                    bind:value={formData.circleName}
+                                    class="input"
+                                    maxlength="50"
+                                    placeholder="동호회 이름을 입력하세요"
+                                />
+                                {#if circleOptions.length > 0}
+                                    <button
+                                        type="button"
+                                        class="circle-mode-btn"
+                                        on:click={switchCircleNameToSelect}
+                                    >
+                                        목록 선택
+                                    </button>
+                                {/if}
+                            </div>
+                        {/if}
                     </div>
 
                     <div class="form-row">
@@ -1384,6 +1504,36 @@
         cursor: pointer;
         background-color: #fff;
     }
+    .circle-help {
+        font-size: 12px;
+        font-weight: 600;
+        color: #4a5568;
+        margin-bottom: 2px;
+    }
+    .circle-help.error {
+        color: #c53030;
+    }
+    .circle-picker-row {
+        display: grid;
+        grid-template-columns: 1fr 110px;
+        gap: 10px;
+        align-items: center;
+    }
+    .circle-mode-btn {
+        padding: 12px 10px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        background: #fff;
+        color: #1a365d;
+        font-size: 12px;
+        font-weight: 800;
+        font-family: inherit;
+        cursor: pointer;
+    }
+    .circle-mode-btn:hover {
+        background: #f7fafc;
+        border-color: #cbd5e0;
+    }
     .input:focus {
         border-color: #1a365d;
         box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.1);
@@ -1565,6 +1715,9 @@
             grid-template-columns: 1fr;
         }
         .username-row {
+            grid-template-columns: 1fr;
+        }
+        .circle-picker-row {
             grid-template-columns: 1fr;
         }
         .button-group {
