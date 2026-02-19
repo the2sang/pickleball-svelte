@@ -36,6 +36,9 @@
       {#if $auth.accountType === 'PARTNER'}
          <a href="/partner" class="pb-btn-ghost nav-link partner-link">사설클럽 관리</a>
          <a href="/partner/profile" class="pb-btn-ghost nav-link profile-link">사설클럽정보</a>
+      {:else if $auth.accountType === 'CIRCLE'}
+         <a href="/circle" class="pb-btn-ghost nav-link partner-link">동호회 관리</a>
+         <a href="/profile" class="pb-btn-ghost nav-link profile-link">회원정보</a>
       {:else}
         <a href="/profile" class="pb-btn-ghost nav-link profile-link">회원정보</a>
       {/if}

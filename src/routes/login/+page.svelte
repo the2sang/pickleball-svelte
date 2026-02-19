@@ -1,39 +1,17 @@
 <script>
     import { goto } from "$app/navigation";
+    import { onMount } from "svelte";
     import { auth } from "$lib/stores/auth.js";
     import { buildApiUrl } from "$lib/api.js";
     import SiteHeader from "$lib/components/SiteHeader.svelte";
 
-    const quickAccounts = [
-        { label: "파트너 - admin1", username: "admin1", role: "PARTNER" },
-        { label: "파트너 - admin2", username: "admin2", role: "PARTNER" },
-        { label: "파트너 - admin3", username: "admin3", role: "PARTNER" },
-        { label: "회원 - user1", username: "user1", role: "MEMBER" },
-        { label: "회원 - user2", username: "user2", role: "MEMBER" },
-        { label: "회원 - user3", username: "user3", role: "MEMBER" },
-        { label: "회원 - user4", username: "user4", role: "MEMBER" },
-        { label: "회원 - user5", username: "user5", role: "MEMBER" },
-        { label: "회원 - user6", username: "user6", role: "MEMBER" },
-        { label: "회원 - user7", username: "user7", role: "MEMBER" },
-        { label: "회원 - user8", username: "user8", role: "MEMBER" },
-        { label: "회원 - user9", username: "user9", role: "MEMBER" },
-        { label: "회원 - user10", username: "user10", role: "MEMBER" },
-    ];
-
-    const quickAccountsSorted = [...quickAccounts].sort((a, b) => {
-        if (a.role === b.role) {
-            return a.username.localeCompare(b.username);
-        }
-
-        const rolePriority = {
-            PARTNER: 0,
-            MEMBER: 1,
-        };
-
-        return rolePriority[a.role] - rolePriority[b.role];
-    });
     const isQuickLoginEnabled = import.meta.env.DEV;
     const quickPassword = "alswl1!314";
+    let quickAccounts = [];
+
+    const quickAccountsSorted = $derived(
+        [...quickAccounts].sort((a, b) => a.username.localeCompare(b.username))
+    );
 
     let formData = {
         username: "",
@@ -54,6 +32,33 @@
     let resetLoading = false;
     let resetMessage = "";
     let resetError = "";
+
+    onMount(() => {
+        if (!isQuickLoginEnabled) {
+            return;
+        }
+
+        fetchQuickAccounts();
+    });
+
+    async function fetchQuickAccounts() {
+        try {
+            const response = await fetch(buildApiUrl("/api/v1/auth/quick-accounts"));
+            if (!response.ok) {
+                return;
+            }
+
+            const accounts = await response.json();
+            quickAccounts = Array.isArray(accounts)
+                ? accounts.map((account) => ({
+                      label: `${account.accountType || "USER"} - ${account.username}`,
+                      username: account.username,
+                  }))
+                : [];
+        } catch {
+            quickAccounts = [];
+        }
+    }
 
     function validateForm() {
         let isValid = true;
@@ -139,6 +144,8 @@
                 goto("/admin");
             } else if (accountType === "PARTNER") {
                 goto("/partner");
+            } else if (accountType === "CIRCLE") {
+                goto("/circle");
             } else {
                 goto("/");
             }
