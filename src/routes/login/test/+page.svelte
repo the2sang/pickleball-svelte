@@ -21,13 +21,13 @@
     { label: "회원 - user10", username: "user10", password: defaultPassword },
   ];
 
-  let selectedUsername = "";
-  let formData = {
+  let selectedUsername = $state("");
+  let formData = $state({
     username: "",
     password: "",
-  };
-  let loading = false;
-  let loginError = "";
+  });
+  let loading = $state(false);
+  let loginError = $state("");
 
   function onAccountChange(username) {
     selectedUsername = username;
@@ -96,7 +96,7 @@
 
   <main class="main">
     <div class="form-container">
-      <form class="login-form" on:submit={submitLogin}>
+      <form class="login-form" onsubmit={submitLogin}>
         {#if loginError}
           <div class="login-error">{loginError}</div>
         {/if}
@@ -107,7 +107,7 @@
             id="test-account"
             class="input"
             bind:value={selectedUsername}
-            on:change={(e) => onAccountChange(e.target.value)}
+            onchange={(e) => onAccountChange(e.target.value)}
           >
             <option value="">계정을 선택하세요</option>
             {#each testAccounts as account}

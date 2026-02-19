@@ -7,31 +7,46 @@
 
     const isQuickLoginEnabled = import.meta.env.DEV;
     const quickPassword = "alswl1!314";
-    let quickAccounts = [];
+    const quickAccountsFallback = [
+        { label: "파트너 - admin1", username: "admin1" },
+        { label: "파트너 - admin2", username: "admin2" },
+        { label: "파트너 - admin3", username: "admin3" },
+        { label: "회원 - user1", username: "user1" },
+        { label: "회원 - user2", username: "user2" },
+        { label: "회원 - user3", username: "user3" },
+        { label: "회원 - user4", username: "user4" },
+        { label: "회원 - user5", username: "user5" },
+        { label: "회원 - user6", username: "user6" },
+        { label: "회원 - user7", username: "user7" },
+        { label: "회원 - user8", username: "user8" },
+        { label: "회원 - user9", username: "user9" },
+        { label: "회원 - user10", username: "user10" },
+    ];
+    let quickAccounts = $state([]);
 
     const quickAccountsSorted = $derived(
         [...quickAccounts].sort((a, b) => a.username.localeCompare(b.username))
     );
 
-    let formData = {
+    let formData = $state({
         username: "",
         password: "",
-    };
+    });
 
-    let selectedQuickAccount = "";
+    let selectedQuickAccount = $state("");
 
-    let errors = {
+    let errors = $state({
         username: "",
         password: "",
-    };
+    });
 
-    let loginError = "";
-    let loading = false;
-    let showResetForm = false;
-    let resetEmail = "";
-    let resetLoading = false;
-    let resetMessage = "";
-    let resetError = "";
+    let loginError = $state("");
+    let loading = $state(false);
+    let showResetForm = $state(false);
+    let resetEmail = $state("");
+    let resetLoading = $state(false);
+    let resetMessage = $state("");
+    let resetError = $state("");
 
     onMount(() => {
         if (!isQuickLoginEnabled) {
@@ -45,18 +60,21 @@
         try {
             const response = await fetch(buildApiUrl("/api/v1/auth/quick-accounts"));
             if (!response.ok) {
-                return;
+                throw new Error(`quick-accounts request failed: ${response.status}`);
             }
 
             const accounts = await response.json();
-            quickAccounts = Array.isArray(accounts)
+            const mappedAccounts = Array.isArray(accounts)
                 ? accounts.map((account) => ({
                       label: `${account.accountType || "USER"} - ${account.username}`,
                       username: account.username,
                   }))
                 : [];
-        } catch {
-            quickAccounts = [];
+
+            quickAccounts = mappedAccounts.length ? mappedAccounts : quickAccountsFallback;
+        } catch (error) {
+            console.warn("개발용 계정 목록 조회 실패, 기본 목록으로 대체합니다.", error);
+            quickAccounts = quickAccountsFallback;
         }
     }
 
@@ -219,7 +237,7 @@
     <!-- Main Content -->
     <main class="main">
         <div class="form-container">
-            <form class="login-form" on:submit={handleSubmit}>
+            <form class="login-form" onsubmit={handleSubmit}>
                 {#if loginError}
                     <div class="login-error">
                         <span class="error-icon">⚠️</span>
@@ -236,7 +254,7 @@
                             id="quick-account"
                             class="input"
                             bind:value={selectedQuickAccount}
-                            on:change={(e) => handleQuickAccountChange(e.target.value)}
+                            onchange={(e) => handleQuickAccountChange(e.target.value)}
                         >
                             <option value="">선택 안함</option>
                             {#each quickAccountsSorted as account}
@@ -264,8 +282,8 @@
                         class:error={errors.username}
                         placeholder="로그인 ID를 입력하세요"
                         autocomplete="username"
-                        on:input={handleManualInput}
-                        on:keydown={(e) => e.key === 'Enter' && handleSubmit(e)}
+                        oninput={handleManualInput}
+                        onkeydown={(e) => e.key === 'Enter' && handleSubmit(e)}
                     />
                     {#if errors.username}
                         <span class="error-message">{errors.username}</span>
@@ -285,8 +303,8 @@
                         class:error={errors.password}
                         placeholder="비밀번호를 입력하세요"
                         autocomplete="current-password"
-                        on:input={handleManualInput}
-                        on:keydown={(e) => e.key === 'Enter' && handleSubmit(e)}
+                        oninput={handleManualInput}
+                        onkeydown={(e) => e.key === 'Enter' && handleSubmit(e)}
                     />
                     {#if errors.password}
                         <span class="error-message">{errors.password}</span>
@@ -304,7 +322,7 @@
                     <button
                         type="button"
                         class="btn btn-secondary"
-                        on:click={goBack}
+                        onclick={goBack}
                     >
                         취소
                     </button>
@@ -318,7 +336,7 @@
                         <button
                             type="button"
                             class="forgot-anchor"
-                            on:click={toggleResetForm}
+                            onclick={toggleResetForm}
                         >
                             {showResetForm ? "닫기" : "비밀번호 찾기"}
                         </button>
@@ -340,7 +358,7 @@
                             <button
                                 type="button"
                                 class="reset-btn"
-                                on:click={handleResetPassword}
+                                onclick={handleResetPassword}
                                 disabled={resetLoading}
                             >
                                 {resetLoading ? "발송 중..." : "임시 비밀번호 발송"}
