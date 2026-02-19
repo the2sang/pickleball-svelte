@@ -3,6 +3,7 @@
     import { goto } from "$app/navigation";
     import { page } from "$app/stores";
     import { auth } from "$lib/stores/auth.js";
+    import { buildApiUrl } from "$lib/api.js";
     import SiteHeader from "$lib/components/SiteHeader.svelte";
 
 let formData = {
@@ -14,6 +15,8 @@ let formData = {
     };
 
     let notice = "";
+    let errorMessage = "";
+    let saving = false;
 
     onMount(() => {
         auth.refresh();
@@ -30,9 +33,53 @@ let formData = {
         return user;
     }
 
-    function handleSave(event) {
+    async function handleSave(event) {
         event.preventDefault();
-        notice = "등록 API 연동 전까지는 화면 구성만 제공됩니다.";
+        notice = "";
+        errorMessage = "";
+
+        const user = getUser();
+        if (!user?.accessToken) {
+            errorMessage = "로그인 정보가 만료되었습니다. 다시 로그인해주세요.";
+            goto("/login");
+            return;
+        }
+
+        if (!formData.placeName.trim()) {
+            errorMessage = "운동장소명을 입력해주세요.";
+            return;
+        }
+
+        saving = true;
+        try {
+            const response = await fetch(buildApiUrl("/api/v1/circle-manage/places"), {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${user.accessToken}`,
+                },
+                body: JSON.stringify({
+                    placeName: formData.placeName,
+                    personnelNumber: Number(formData.personnelNumber),
+                    placeType: formData.placeType,
+                    gameTime: formData.gameTime,
+                    reservClose: formData.reservClose,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => null);
+                errorMessage = errorData?.message || "운동장소 등록 중 오류가 발생했습니다.";
+                return;
+            }
+
+            notice = "운동장소가 등록되었습니다.";
+            goto("/circle/place");
+        } catch {
+            errorMessage = "서버에 연결할 수 없습니다. 네트워크를 확인해주세요.";
+        } finally {
+            saving = false;
+        }
     }
 
     function handleLogout() {
@@ -55,18 +102,22 @@ let formData = {
             href="/circle/place"
             class={`pb-btn-ghost nav-link menu-link ${$page.url.pathname.startsWith('/circle/place') ? 'is-active' : ''}`}
         >운동장소관리</a>
-        <button class="pb-btn-ghost nav-link logout-btn" on:click={handleLogout}>로그아웃</button>
+        <button class="pb-btn-ghost nav-link logout-btn" onclick={handleLogout}>로그아웃</button>
     </SiteHeader>
 
     <main class="main">
-        <button class="back-btn" on:click={() => goto('/circle/place')}>← 목록으로</button>
+        <button class="back-btn" onclick={() => goto('/circle/place')}>← 목록으로</button>
 
         <div class="form-container">
             {#if notice}
                 <div class="notice-msg">ℹ️ {notice}</div>
             {/if}
 
-            <form class="place-form" on:submit={handleSave}>
+            {#if errorMessage}
+                <div class="error-msg">⚠️ {errorMessage}</div>
+            {/if}
+
+            <form class="place-form" onsubmit={handleSave}>
                 <div class="field-group">
                     <label for="placeName" class="field-label">운동장소명 <span class="required">*</span></label>
                     <input
@@ -122,8 +173,10 @@ let formData = {
                 </div>
 
                 <div class="btn-row">
-                    <button type="button" class="cancel-btn" on:click={() => goto('/circle/place')}>취소</button>
-                    <button type="submit" class="save-btn">등록 화면 확인</button>
+                    <button type="button" class="cancel-btn" onclick={() => goto('/circle/place')}>취소</button>
+                    <button type="submit" class="save-btn" disabled={saving}>
+                        {saving ? "등록 중..." : "등록"}
+                    </button>
                 </div>
             </form>
         </div>
@@ -246,5 +299,17 @@ let formData = {
         border-radius: 8px;
         margin-bottom: 20px;
         font-weight: 500;
+    }
+    .error-msg {
+        padding: 12px;
+        background: #fff5f5;
+        color: #c53030;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-weight: 500;
+    }
+    .save-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
     }
 </style>
