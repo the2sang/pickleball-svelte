@@ -58,7 +58,7 @@
 
   const players = $derived($modalData?.reservation?.players ?? []);
   const playerCount = $derived(players.length);
-  const capacity = $derived($modalData?.reservation?.capacity ?? $modalData?.court?.capacity ?? 6);
+  const capacity = $derived($modalData?.reservation?.capacity ?? $modalData?.court?.capacity ?? 30);
   const reservedCount = $derived($modalData?.reservation?.reservedCount ?? playerCount);
   const counts = $derived(getReservationCounts(reservedCount, capacity));
 

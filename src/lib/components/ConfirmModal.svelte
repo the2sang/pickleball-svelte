@@ -71,7 +71,7 @@
 
       {#if $modalData}
         <div class="summary">
-          <div><strong>사업장:</strong> {partnerName}</div>
+          <div><strong>사설클럽:</strong> {partnerName}</div>
           <div>
             <strong>코트:</strong>
             {$modalData.court.courtName || $modalData.court.name || '코트'} ({$modalData.court.courtLevel || $modalData.court.level || ''})

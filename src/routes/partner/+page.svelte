@@ -28,11 +28,11 @@
 </script>
 
 <svelte:head>
-    <title>사업장 관리 - LESGO PiCKLE</title>
+    <title>사설클럽 관리 - LESGO PiCKLE</title>
 </svelte:head>
 
 <div class="pb-shell page">
-    <SiteHeader title="사업장 관리" brandHref="/partner" hasNav={!!$auth}>
+    <SiteHeader title="사설클럽 관리" brandHref="/partner" hasNav={!!$auth}>
       {#if $auth}
         <span class="pb-user-pill user-greeting">
             <span class="user-icon">🏢</span>
@@ -50,9 +50,9 @@
         >
         <a
           href="/partner/profile"
-          class={`pb-btn-ghost nav-link profile-link ${$page.url.pathname === '/partner/profile' ? 'is-active' : ''}`}
-          >사업장정보</a
-        >
+           class={`pb-btn-ghost nav-link profile-link ${$page.url.pathname === '/partner/profile' ? 'is-active' : ''}`}
+           >사설클럽정보</a
+         >
         <button class="pb-btn-ghost nav-link logout-btn" on:click={handleLogout}>로그아웃</button>
       {/if}
     </SiteHeader>
@@ -60,9 +60,9 @@
     <main class="main">
         <div class="welcome-card">
             <div class="welcome-icon">🏟️</div>
-            <h2 class="welcome-title">사업장 관리 페이지</h2>
+            <h2 class="welcome-title">사설클럽 관리 페이지</h2>
             <p class="welcome-desc">
-                사업장 정보를 관리하고, 코트 및 예약 현황을 확인할 수 있습니다.
+                사설클럽 정보를 관리하고, 코트 및 예약 현황을 확인할 수 있습니다.
             </p>
             <div class="quick-links">
                 <a href="/partner/court" class="quick-link">
@@ -75,7 +75,7 @@
                 </a>
                 <a href="/partner/profile" class="quick-link">
                     <span class="quick-icon">📋</span>
-                    <span class="quick-text">사업장정보 수정</span>
+                    <span class="quick-text">사설클럽정보 수정</span>
                 </a>
             </div>
         </div>

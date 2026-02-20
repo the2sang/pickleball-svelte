@@ -60,7 +60,7 @@
                 howToPay: profile.howToPay || "",
             };
         } catch (err) {
-            error = "사업장 정보를 불러올 수 없습니다.";
+            error = "사설클럽 정보를 불러올 수 없습니다.";
         } finally {
             loading = false;
         }
@@ -104,7 +104,7 @@
                 auth.login({ ...user, name: profile.owner });
             }
 
-            successMsg = "사업장 정보가 수정되었습니다.";
+             successMsg = "사설클럽 정보가 수정되었습니다.";
             setTimeout(() => (successMsg = ""), 3000);
         } catch (err) {
             error = err.message || "수정 중 오류가 발생했습니다.";
@@ -128,11 +128,11 @@
 </script>
 
 <svelte:head>
-    <title>사업장정보 수정 - LESGO PiCKLE</title>
+    <title>사설클럽정보 수정 - LESGO PiCKLE</title>
 </svelte:head>
 
 <div class="pb-shell page">
-    <SiteHeader title="사업장정보 수정" brandHref="/partner" hasNav={!!$auth}>
+    <SiteHeader title="사설클럽정보 수정" brandHref="/partner" hasNav={!!$auth}>
         <span class="pb-user-pill user-greeting">
             <span class="user-icon">🏢</span>
             <span class="user-name">{$auth?.name || $auth?.username || '사용자'}</span>님
@@ -149,9 +149,9 @@
         >
         <a
             href="/partner/profile"
-            class={`pb-btn-ghost nav-link profile-link ${$page.url.pathname === '/partner/profile' ? 'is-active' : ''}`}
-            >사업장정보</a
-        >
+             class={`pb-btn-ghost nav-link profile-link ${$page.url.pathname === '/partner/profile' ? 'is-active' : ''}`}
+             >사설클럽정보</a
+         >
         <button class="pb-btn-ghost nav-link logout-btn" on:click={handleLogout}>로그아웃</button>
     </SiteHeader>
 
@@ -197,9 +197,9 @@
 
                 <form class="edit-form" on:submit={handleSave}>
                     <div class="field-group">
-                        <label for="businessPartner" class="field-label"
-                            >사업장명 <span class="required">*</span></label
-                        >
+                         <label for="businessPartner" class="field-label"
+                             >사설클럽명 <span class="required">*</span></label
+                         >
                         <input
                             id="businessPartner"
                             type="text"

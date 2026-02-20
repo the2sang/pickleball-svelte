@@ -201,9 +201,9 @@
 
       <div class="form">
         <label class="pb-field">
-          <span class="pb-label">사업장</span>
-          <input class="pb-input" type="text" value={partnerName} disabled />
-        </label>
+           <span class="pb-label">사설클럽</span>
+           <input class="pb-input" type="text" value={partnerName} disabled />
+         </label>
 
         <label class="pb-field">
           <span class="pb-label">코트</span>

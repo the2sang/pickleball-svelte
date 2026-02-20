@@ -89,11 +89,11 @@
         class={`pb-btn-ghost nav-link court-link ${$page.url.pathname === '/partner/courtReservation' ? 'is-active' : ''}`}
         >예약설정</a
       >
-      <a
-        href="/partner/profile"
-        class={`pb-btn-ghost nav-link profile-link ${$page.url.pathname === '/partner/profile' ? 'is-active' : ''}`}
-        >사업장정보</a
-      >
+       <a
+         href="/partner/profile"
+         class={`pb-btn-ghost nav-link profile-link ${$page.url.pathname === '/partner/profile' ? 'is-active' : ''}`}
+         >사설클럽정보</a
+       >
       <button class="pb-btn-ghost nav-link logout-btn" on:click={handleLogout}>로그아웃</button>
     </SiteHeader>
 

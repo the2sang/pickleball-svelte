@@ -51,7 +51,7 @@ export function isCancelDeadlinePassed(timeSlot, gameDate) {
 }
 
 export function getReservationCounts(reservedCount, capacity) {
-  const cap = Number.isFinite(Number(capacity)) ? Number(capacity) : 6;
+  const cap = Number.isFinite(Number(capacity)) ? Number(capacity) : 30;
   const total = Number.isFinite(Number(reservedCount)) ? Number(reservedCount) : 0;
   const confirmedCount = Math.min(total, cap);
   const waitingCount = Math.max(total - cap, 0);
